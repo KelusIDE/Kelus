@@ -1,0 +1,648 @@
+import type { Locale } from './types';
+export type { Locale };
+export const locales: { id: Locale; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'ko', label: '한국어' },
+  { id: 'fr', label: 'Français' },
+  { id: 'es', label: 'Español' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'ja', label: '日本語' },
+  { id: 'zh', label: '中文' }
+];
+
+const en = {
+  'common.save': 'Save', 'common.refresh': 'Refresh', 'common.delete': 'Delete', 'common.rename': 'Rename',
+  'common.download': 'Download', 'common.edit': 'Edit', 'common.done': 'Done', 'common.loading': 'Loading…',
+  'common.pleaseWait': 'Please wait…', 'common.openFolder': 'Open Folder', 'common.run': 'Run',
+  'common.approve': 'Approve', 'common.decline': 'Decline',
+
+  'topbar.back': 'Back', 'topbar.forward': 'Forward', 'topbar.openFolderTitle': 'Open a project folder',
+  'topbar.toggleExplorer': 'Toggle Explorer', 'topbar.togglePanel': 'Toggle Panel', 'topbar.toggleAgentRoom': 'Toggle Agent Room',
+
+  'sidebar.explorer': 'Explorer', 'sidebar.sourceControl': 'Source Control', 'sidebar.openFolder': 'Open Folder',
+  'sidebar.agentRoom': 'Agent Room', 'sidebar.terminal': 'Terminal', 'sidebar.account': 'Kelus Account', 'sidebar.settings': 'Settings',
+
+  'explorer.title': 'EXPLORER', 'explorer.actionsTitle': 'Explorer actions', 'explorer.newFile': 'New File',
+  'explorer.newFolder': 'New Folder', 'explorer.rename': 'Rename', 'explorer.delete': 'Delete', 'explorer.refresh': 'Refresh',
+  'explorer.openEditors': 'OPEN EDITORS', 'explorer.closeTab': 'Close {path}', 'explorer.newFileShort': 'New file',
+  'explorer.newFolderShort': 'New folder', 'explorer.noFolderOpen': 'NO FOLDER OPEN',
+  'explorer.emptyMessage': 'You have not yet opened a folder.',
+
+  'tabs.empty': 'No open editors', 'tabs.saveTitle': 'Save file',
+
+  'editorEmpty.subtitle': 'Open a file or ask the agents to work on your project.', 'editorEmpty.openAgentRoom': 'Open Agent Room',
+
+  'bottomPanel.terminal': 'TERMINAL', 'bottomPanel.testOutput': 'TEST OUTPUT', 'bottomPanel.logs': 'LOGS',
+  'bottomPanel.hide': 'Hide Panel', 'bottomPanel.terminalPlaceholder': 'Enter a shell command',
+  'bottomPanel.noTestRun': 'No test run yet.', 'bottomPanel.noLogs': 'No logs.',
+
+  'agentPanel.title': 'AGENTS', 'agentPanel.close': 'Close Agent Room', 'agentPanel.emptyTitle': 'Agent Room',
+  'agentPanel.emptyBody': 'Give Kelus a coding task. Agent decisions and evidence will appear here.',
+  'agentPanel.approvalRequired': 'APPROVAL REQUIRED',
+  'agentPanel.approvalDescription': 'Review the proposed diff. Approval permits this file write.',
+  'agentPanel.approvalDescriptionWithCommand': 'Review the proposed diff. Approval permits this file write and the command: {command}.',
+  'agentPanel.kindClaim': 'claim', 'agentPanel.kindEvidence': 'evidence',
+  'agentPanel.kindCounterargument': 'counterargument', 'agentPanel.kindDecision': 'decision',
+  'agentPanel.taskPlaceholder': 'Ask Kelus to change your project…', 'agentPanel.testCommandPlaceholder': 'Test command (optional)',
+  'agentPanel.runAgents': 'Run agents', 'agentPanel.evidenceSummary': 'Evidence',
+
+  'verification.title': 'VERIFICATION', 'verification.unavailable': 'Unavailable', 'verification.testCommand': 'Test command',
+  'verification.tests': 'Tests', 'verification.security': 'Security', 'verification.requirements': 'Requirements',
+  'verification.disagreements': 'Disagreements', 'verification.revisions': 'Revisions', 'verification.modelCalls': 'Model calls',
+  'verification.tokens': 'Tokens', 'verification.time': 'Time', 'verification.cost': 'Cost',
+  'verification.passed': 'Passed', 'verification.failed': 'Failed ({code})',
+
+  'statusbar.noFolderOpen': 'No folder open', 'statusbar.agentsWorking': 'Agents working',
+
+  'settings.title': 'Settings', 'settings.subtitle': 'Appearance and agent models', 'settings.close': 'Close settings',
+  'settings.appearance': 'Appearance', 'settings.colorTheme': 'Color theme', 'settings.agentModels': 'Agent models',
+  'settings.profileHint': 'Save several provider profiles and pick which one agents use. Each keeps its own endpoint, model, and key.',
+  'settings.providerMock': 'Mock', 'settings.providerOpenAI': 'OpenAI compatible',
+  'settings.profileName': 'Profile name', 'settings.profileNamePlaceholder': 'e.g. OpenAI, Groq, Local Ollama',
+  'settings.apiEndpoint': 'API endpoint', 'settings.modelNameLabel': 'Model name', 'settings.modelIdPlaceholder': 'Model ID',
+  'settings.apiKeyLabel': 'API key', 'settings.apiKeySaved': 'Saved key (leave blank to keep)',
+  'settings.apiKeyEnter': 'Enter API key', 'settings.removeApiKey': 'Remove saved API key',
+  'settings.addProfile': '+ Add provider profile',
+  'settings.keyStorageEncrypted': 'Keys are encrypted using your operating system’s secure storage.',
+  'settings.keyStorageSession': 'Secure storage is unavailable. Keys stay in memory for this session only.',
+  'settings.save': 'Save Settings', 'settings.saving': 'Saving…', 'settings.saved': 'Settings saved',
+  'settings.language': 'Language', 'settings.languageHint': 'Changes the Kelus interface language.',
+
+  'account.title': 'Kelus Account', 'account.subtitle': 'Sign in and sync projects to Kelus Cloud',
+  'account.close': 'Close account', 'account.createTitle': 'Create your Kelus account', 'account.signInTitle': 'Sign in to Kelus',
+  'account.namePlaceholder': 'Name', 'account.emailPlaceholder': 'Email', 'account.passwordPlaceholder': 'Password',
+  'account.createButton': 'Create account', 'account.signInButton': 'Sign in',
+  'account.hasAccount': 'Already have an account?', 'account.newToKelus': 'New to Kelus?',
+  'account.createAccountLink': 'Create an account', 'account.signOut': 'Sign out', 'account.cloudSyncTitle': 'Cloud sync',
+  'account.syncDescription': 'Sync the open project ({name}) to Kelus Cloud. Useful once a project grows past ~100 MB and you want an off-device copy.',
+  'account.syncNoProject': 'Open a project folder to sync it.', 'account.syncing': 'Syncing…', 'account.syncButton': 'Sync to Cloud',
+  'account.progressZipping': 'Zipping project… {percent}%', 'account.progressUploading': 'Uploading to Kelus Cloud…',
+  'account.progressSaving': 'Saving project record…', 'account.progressDone': 'Done', 'account.syncNotice': 'Project synced.',
+  'account.projectsTitle': 'Synced projects', 'account.noProjects': 'No projects synced yet.',
+  'account.downloadedTo': 'Downloaded to {destination}',
+  'account.deleteConfirm': 'Delete the cloud copy of {name}? This cannot be undone.',
+
+  'sourceControl.title': 'SOURCE CONTROL', 'sourceControl.refreshTitle': 'Refresh Git status',
+  'sourceControl.emptyNoFolder': 'Open a folder to use source control.', 'sourceControl.loadingStatus': 'Loading Git status…',
+  'sourceControl.notRepo': 'This folder is not a Git repository.', 'sourceControl.initRepo': 'Initialize Repository',
+  'sourceControl.noBranch': 'No branch yet', 'sourceControl.commitPlaceholder': 'Commit message',
+  'sourceControl.commitButton': 'Commit selected files', 'sourceControl.pushButton': 'Push to origin',
+  'sourceControl.originLabel': 'Origin remote', 'sourceControl.updateOrigin': 'Update origin', 'sourceControl.addOrigin': 'Add origin',
+  'sourceControl.changesTitle': 'CHANGES', 'sourceControl.workingTreeClean': 'Working tree clean',
+  'sourceControl.githubAccount': 'GITHUB ACCOUNT', 'sourceControl.connectedAs': 'Connected as {username}',
+  'sourceControl.connectPrompt': 'Connect GitHub to authenticate pushes.', 'sourceControl.signInGithub': 'Sign in with GitHub',
+  'sourceControl.checkConnection': 'Check connection', 'sourceControl.cliRequired': 'GitHub CLI is required to connect an account.',
+  'sourceControl.getCli': 'Get GitHub CLI', 'sourceControl.checkAgain': 'Check again',
+  'sourceControl.noticeInit': 'Git repository initialized', 'sourceControl.noticeCommit': 'Commit created',
+  'sourceControl.noticeOrigin': 'Origin remote saved', 'sourceControl.noticePush': 'Push complete',
+  'sourceControl.pushConfirm': 'Push {branch} to origin?'
+};
+export type Key = keyof typeof en;
+
+const ko: Record<Key, string> = {
+  'common.save': '저장', 'common.refresh': '새로고침', 'common.delete': '삭제', 'common.rename': '이름 바꾸기',
+  'common.download': '다운로드', 'common.edit': '편집', 'common.done': '완료', 'common.loading': '로드 중…',
+  'common.pleaseWait': '잠시만 기다려 주세요…', 'common.openFolder': '폴더 열기', 'common.run': '실행',
+  'common.approve': '승인', 'common.decline': '거부',
+
+  'topbar.back': '뒤로', 'topbar.forward': '앞으로', 'topbar.openFolderTitle': '프로젝트 폴더 열기',
+  'topbar.toggleExplorer': '탐색기 전환', 'topbar.togglePanel': '패널 전환', 'topbar.toggleAgentRoom': '에이전트 룸 전환',
+
+  'sidebar.explorer': '탐색기', 'sidebar.sourceControl': '소스 제어', 'sidebar.openFolder': '폴더 열기',
+  'sidebar.agentRoom': '에이전트 룸', 'sidebar.terminal': '터미널', 'sidebar.account': 'Kelus 계정', 'sidebar.settings': '설정',
+
+  'explorer.title': '탐색기', 'explorer.actionsTitle': '탐색기 작업', 'explorer.newFile': '새 파일',
+  'explorer.newFolder': '새 폴더', 'explorer.rename': '이름 바꾸기', 'explorer.delete': '삭제', 'explorer.refresh': '새로고침',
+  'explorer.openEditors': '열린 편집기', 'explorer.closeTab': '{path} 닫기', 'explorer.newFileShort': '새 파일',
+  'explorer.newFolderShort': '새 폴더', 'explorer.noFolderOpen': '열린 폴더 없음',
+  'explorer.emptyMessage': '아직 폴더를 열지 않았습니다.',
+
+  'tabs.empty': '열린 편집기 없음', 'tabs.saveTitle': '파일 저장',
+
+  'editorEmpty.subtitle': '파일을 열거나 에이전트에게 프로젝트 작업을 요청하세요.', 'editorEmpty.openAgentRoom': '에이전트 룸 열기',
+
+  'bottomPanel.terminal': '터미널', 'bottomPanel.testOutput': '테스트 출력', 'bottomPanel.logs': '로그',
+  'bottomPanel.hide': '패널 숨기기', 'bottomPanel.terminalPlaceholder': '셸 명령을 입력하세요',
+  'bottomPanel.noTestRun': '아직 실행된 테스트가 없습니다.', 'bottomPanel.noLogs': '로그가 없습니다.',
+
+  'agentPanel.title': '에이전트', 'agentPanel.close': '에이전트 룸 닫기', 'agentPanel.emptyTitle': '에이전트 룸',
+  'agentPanel.emptyBody': 'Kelus에게 코딩 작업을 알려주세요. 에이전트의 결정과 근거가 여기에 표시됩니다.',
+  'agentPanel.approvalRequired': '승인 필요',
+  'agentPanel.approvalDescription': '제안된 변경 사항(diff)을 검토하세요. 승인하면 이 파일 쓰기가 허용됩니다.',
+  'agentPanel.approvalDescriptionWithCommand': '제안된 변경 사항(diff)을 검토하세요. 승인하면 이 파일 쓰기와 다음 명령이 허용됩니다: {command}.',
+  'agentPanel.kindClaim': '주장', 'agentPanel.kindEvidence': '근거',
+  'agentPanel.kindCounterargument': '반론', 'agentPanel.kindDecision': '결정',
+  'agentPanel.taskPlaceholder': 'Kelus에게 프로젝트 변경을 요청하세요…', 'agentPanel.testCommandPlaceholder': '테스트 명령 (선택 사항)',
+  'agentPanel.runAgents': '에이전트 실행', 'agentPanel.evidenceSummary': '근거',
+
+  'verification.title': '검증', 'verification.unavailable': '사용 불가', 'verification.testCommand': '테스트 명령',
+  'verification.tests': '테스트', 'verification.security': '보안', 'verification.requirements': '요구 사항',
+  'verification.disagreements': '이견', 'verification.revisions': '수정 횟수', 'verification.modelCalls': '모델 호출',
+  'verification.tokens': '토큰', 'verification.time': '시간', 'verification.cost': '비용',
+  'verification.passed': '통과', 'verification.failed': '실패 ({code})',
+
+  'statusbar.noFolderOpen': '열린 폴더 없음', 'statusbar.agentsWorking': '에이전트 작업 중',
+
+  'settings.title': '설정', 'settings.subtitle': '모양 및 에이전트 모델', 'settings.close': '설정 닫기',
+  'settings.appearance': '모양', 'settings.colorTheme': '색 테마', 'settings.agentModels': '에이전트 모델',
+  'settings.profileHint': '여러 공급자 프로필을 저장하고 에이전트가 사용할 프로필을 선택하세요. 각 프로필은 고유한 엔드포인트, 모델, 키를 유지합니다.',
+  'settings.providerMock': '모의(Mock)', 'settings.providerOpenAI': 'OpenAI 호환',
+  'settings.profileName': '프로필 이름', 'settings.profileNamePlaceholder': '예: OpenAI, Groq, 로컬 Ollama',
+  'settings.apiEndpoint': 'API 엔드포인트', 'settings.modelNameLabel': '모델 이름', 'settings.modelIdPlaceholder': '모델 ID',
+  'settings.apiKeyLabel': 'API 키', 'settings.apiKeySaved': '저장된 키 (유지하려면 비워두세요)',
+  'settings.apiKeyEnter': 'API 키 입력', 'settings.removeApiKey': '저장된 API 키 삭제',
+  'settings.addProfile': '+ 공급자 프로필 추가',
+  'settings.keyStorageEncrypted': '키는 운영체제의 보안 저장소를 사용해 암호화됩니다.',
+  'settings.keyStorageSession': '보안 저장소를 사용할 수 없습니다. 키는 이 세션 동안에만 메모리에 유지됩니다.',
+  'settings.save': '설정 저장', 'settings.saving': '저장 중…', 'settings.saved': '설정이 저장되었습니다',
+  'settings.language': '언어', 'settings.languageHint': 'Kelus 인터페이스 언어를 변경합니다.',
+
+  'account.title': 'Kelus 계정', 'account.subtitle': '로그인하고 프로젝트를 Kelus Cloud에 동기화하세요',
+  'account.close': '계정 닫기', 'account.createTitle': 'Kelus 계정 만들기', 'account.signInTitle': 'Kelus에 로그인',
+  'account.namePlaceholder': '이름', 'account.emailPlaceholder': '이메일', 'account.passwordPlaceholder': '비밀번호',
+  'account.createButton': '계정 만들기', 'account.signInButton': '로그인',
+  'account.hasAccount': '이미 계정이 있으신가요?', 'account.newToKelus': 'Kelus가 처음이신가요?',
+  'account.createAccountLink': '계정 만들기', 'account.signOut': '로그아웃', 'account.cloudSyncTitle': '클라우드 동기화',
+  'account.syncDescription': '열려 있는 프로젝트({name})를 Kelus Cloud에 동기화합니다. 프로젝트가 약 100MB를 넘어 기기 외부 백업이 필요할 때 유용합니다.',
+  'account.syncNoProject': '동기화하려면 프로젝트 폴더를 여세요.', 'account.syncing': '동기화 중…', 'account.syncButton': '클라우드에 동기화',
+  'account.progressZipping': '프로젝트 압축 중… {percent}%', 'account.progressUploading': 'Kelus Cloud에 업로드 중…',
+  'account.progressSaving': '프로젝트 기록 저장 중…', 'account.progressDone': '완료', 'account.syncNotice': '프로젝트가 동기화되었습니다.',
+  'account.projectsTitle': '동기화된 프로젝트', 'account.noProjects': '아직 동기화된 프로젝트가 없습니다.',
+  'account.downloadedTo': '{destination}에 다운로드됨',
+  'account.deleteConfirm': '{name}의 클라우드 사본을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+
+  'sourceControl.title': '소스 제어', 'sourceControl.refreshTitle': 'Git 상태 새로고침',
+  'sourceControl.emptyNoFolder': '소스 제어를 사용하려면 폴더를 여세요.', 'sourceControl.loadingStatus': 'Git 상태 로드 중…',
+  'sourceControl.notRepo': '이 폴더는 Git 저장소가 아닙니다.', 'sourceControl.initRepo': '저장소 초기화',
+  'sourceControl.noBranch': '아직 브랜치 없음', 'sourceControl.commitPlaceholder': '커밋 메시지',
+  'sourceControl.commitButton': '선택한 파일 커밋', 'sourceControl.pushButton': 'origin에 푸시',
+  'sourceControl.originLabel': 'Origin 원격 저장소', 'sourceControl.updateOrigin': 'origin 업데이트', 'sourceControl.addOrigin': 'origin 추가',
+  'sourceControl.changesTitle': '변경 사항', 'sourceControl.workingTreeClean': '작업 트리가 깨끗함',
+  'sourceControl.githubAccount': 'GITHUB 계정', 'sourceControl.connectedAs': '{username}(으)로 연결됨',
+  'sourceControl.connectPrompt': 'GitHub를 연결하여 푸시를 인증하세요.', 'sourceControl.signInGithub': 'GitHub로 로그인',
+  'sourceControl.checkConnection': '연결 확인', 'sourceControl.cliRequired': '계정을 연결하려면 GitHub CLI가 필요합니다.',
+  'sourceControl.getCli': 'GitHub CLI 받기', 'sourceControl.checkAgain': '다시 확인',
+  'sourceControl.noticeInit': 'Git 저장소가 초기화되었습니다', 'sourceControl.noticeCommit': '커밋이 생성되었습니다',
+  'sourceControl.noticeOrigin': 'Origin 원격 저장소가 저장되었습니다', 'sourceControl.noticePush': '푸시 완료',
+  'sourceControl.pushConfirm': '{branch}을(를) origin에 푸시하시겠습니까?'
+};
+
+const fr: Record<Key, string> = {
+  'common.save': 'Enregistrer', 'common.refresh': 'Actualiser', 'common.delete': 'Supprimer', 'common.rename': 'Renommer',
+  'common.download': 'Télécharger', 'common.edit': 'Modifier', 'common.done': 'Terminé', 'common.loading': 'Chargement…',
+  'common.pleaseWait': 'Veuillez patienter…', 'common.openFolder': 'Ouvrir le dossier', 'common.run': 'Exécuter',
+  'common.approve': 'Approuver', 'common.decline': 'Refuser',
+
+  'topbar.back': 'Précédent', 'topbar.forward': 'Suivant', 'topbar.openFolderTitle': 'Ouvrir un dossier de projet',
+  'topbar.toggleExplorer': "Basculer l'explorateur", 'topbar.togglePanel': 'Basculer le panneau',
+  'topbar.toggleAgentRoom': 'Basculer la salle des agents',
+
+  'sidebar.explorer': 'Explorateur', 'sidebar.sourceControl': 'Contrôle de code source', 'sidebar.openFolder': 'Ouvrir le dossier',
+  'sidebar.agentRoom': 'Salle des agents', 'sidebar.terminal': 'Terminal', 'sidebar.account': 'Compte Kelus', 'sidebar.settings': 'Paramètres',
+
+  'explorer.title': 'EXPLORATEUR', 'explorer.actionsTitle': "Actions de l'explorateur", 'explorer.newFile': 'Nouveau fichier',
+  'explorer.newFolder': 'Nouveau dossier', 'explorer.rename': 'Renommer', 'explorer.delete': 'Supprimer', 'explorer.refresh': 'Actualiser',
+  'explorer.openEditors': 'ÉDITEURS OUVERTS', 'explorer.closeTab': 'Fermer {path}', 'explorer.newFileShort': 'Nouveau fichier',
+  'explorer.newFolderShort': 'Nouveau dossier', 'explorer.noFolderOpen': 'AUCUN DOSSIER OUVERT',
+  'explorer.emptyMessage': "Vous n'avez pas encore ouvert de dossier.",
+
+  'tabs.empty': 'Aucun éditeur ouvert', 'tabs.saveTitle': 'Enregistrer le fichier',
+
+  'editorEmpty.subtitle': 'Ouvrez un fichier ou demandez aux agents de travailler sur votre projet.',
+  'editorEmpty.openAgentRoom': 'Ouvrir la salle des agents',
+
+  'bottomPanel.terminal': 'TERMINAL', 'bottomPanel.testOutput': 'SORTIE DES TESTS', 'bottomPanel.logs': 'JOURNAUX',
+  'bottomPanel.hide': 'Masquer le panneau', 'bottomPanel.terminalPlaceholder': 'Entrez une commande shell',
+  'bottomPanel.noTestRun': 'Aucun test exécuté pour le moment.', 'bottomPanel.noLogs': 'Aucun journal.',
+
+  'agentPanel.title': 'AGENTS', 'agentPanel.close': 'Fermer la salle des agents', 'agentPanel.emptyTitle': 'Salle des agents',
+  'agentPanel.emptyBody': 'Confiez une tâche de programmation à Kelus. Les décisions et les preuves des agents apparaîtront ici.',
+  'agentPanel.approvalRequired': 'APPROBATION REQUISE',
+  'agentPanel.approvalDescription': "Examinez la modification proposée. L'approbation autorise cette écriture de fichier.",
+  'agentPanel.approvalDescriptionWithCommand': "Examinez la modification proposée. L'approbation autorise cette écriture de fichier et la commande : {command}.",
+  'agentPanel.kindClaim': 'affirmation', 'agentPanel.kindEvidence': 'preuve',
+  'agentPanel.kindCounterargument': 'contre-argument', 'agentPanel.kindDecision': 'décision',
+  'agentPanel.taskPlaceholder': 'Demandez à Kelus de modifier votre projet…', 'agentPanel.testCommandPlaceholder': 'Commande de test (facultatif)',
+  'agentPanel.runAgents': 'Exécuter les agents', 'agentPanel.evidenceSummary': 'Preuves',
+
+  'verification.title': 'VÉRIFICATION', 'verification.unavailable': 'Indisponible', 'verification.testCommand': 'Commande de test',
+  'verification.tests': 'Tests', 'verification.security': 'Sécurité', 'verification.requirements': 'Exigences',
+  'verification.disagreements': 'Désaccords', 'verification.revisions': 'Révisions', 'verification.modelCalls': 'Appels au modèle',
+  'verification.tokens': 'Jetons', 'verification.time': 'Temps', 'verification.cost': 'Coût',
+  'verification.passed': 'Réussi', 'verification.failed': 'Échec ({code})',
+
+  'statusbar.noFolderOpen': 'Aucun dossier ouvert', 'statusbar.agentsWorking': "Agents en cours d'exécution",
+
+  'settings.title': 'Paramètres', 'settings.subtitle': "Apparence et modèles d'agents", 'settings.close': 'Fermer les paramètres',
+  'settings.appearance': 'Apparence', 'settings.colorTheme': 'Thème de couleurs', 'settings.agentModels': "Modèles d'agents",
+  'settings.profileHint': "Enregistrez plusieurs profils de fournisseur et choisissez celui utilisé par les agents. Chacun conserve son propre point de terminaison, modèle et clé.",
+  'settings.providerMock': 'Simulé', 'settings.providerOpenAI': 'Compatible OpenAI',
+  'settings.profileName': 'Nom du profil', 'settings.profileNamePlaceholder': 'ex. OpenAI, Groq, Ollama local',
+  'settings.apiEndpoint': 'Point de terminaison API', 'settings.modelNameLabel': 'Nom du modèle', 'settings.modelIdPlaceholder': 'ID du modèle',
+  'settings.apiKeyLabel': 'Clé API', 'settings.apiKeySaved': 'Clé enregistrée (laisser vide pour la conserver)',
+  'settings.apiKeyEnter': 'Entrez la clé API', 'settings.removeApiKey': 'Supprimer la clé API enregistrée',
+  'settings.addProfile': '+ Ajouter un profil de fournisseur',
+  'settings.keyStorageEncrypted': "Les clés sont chiffrées à l'aide du stockage sécurisé de votre système d'exploitation.",
+  'settings.keyStorageSession': "Le stockage sécurisé n'est pas disponible. Les clés restent en mémoire pour cette session uniquement.",
+  'settings.save': 'Enregistrer les paramètres', 'settings.saving': 'Enregistrement…', 'settings.saved': 'Paramètres enregistrés',
+  'settings.language': 'Langue', 'settings.languageHint': "Modifie la langue de l'interface de Kelus.",
+
+  'account.title': 'Compte Kelus', 'account.subtitle': 'Connectez-vous et synchronisez vos projets avec Kelus Cloud',
+  'account.close': 'Fermer le compte', 'account.createTitle': 'Créez votre compte Kelus', 'account.signInTitle': 'Connectez-vous à Kelus',
+  'account.namePlaceholder': 'Nom', 'account.emailPlaceholder': 'E-mail', 'account.passwordPlaceholder': 'Mot de passe',
+  'account.createButton': 'Créer un compte', 'account.signInButton': 'Se connecter',
+  'account.hasAccount': 'Vous avez déjà un compte ?', 'account.newToKelus': 'Nouveau sur Kelus ?',
+  'account.createAccountLink': 'Créer un compte', 'account.signOut': 'Se déconnecter', 'account.cloudSyncTitle': 'Synchronisation cloud',
+  'account.syncDescription': "Synchronisez le projet ouvert ({name}) avec Kelus Cloud. Utile une fois qu'un projet dépasse ~100 Mo et que vous voulez une copie hors appareil.",
+  'account.syncNoProject': 'Ouvrez un dossier de projet pour le synchroniser.', 'account.syncing': 'Synchronisation…', 'account.syncButton': 'Synchroniser avec le cloud',
+  'account.progressZipping': 'Compression du projet… {percent} %', 'account.progressUploading': 'Envoi vers Kelus Cloud…',
+  'account.progressSaving': 'Enregistrement de la fiche du projet…', 'account.progressDone': 'Terminé', 'account.syncNotice': 'Projet synchronisé.',
+  'account.projectsTitle': 'Projets synchronisés', 'account.noProjects': 'Aucun projet synchronisé pour le moment.',
+  'account.downloadedTo': 'Téléchargé vers {destination}',
+  'account.deleteConfirm': 'Supprimer la copie cloud de {name} ? Cette action est irréversible.',
+
+  'sourceControl.title': 'CONTRÔLE DE CODE SOURCE', 'sourceControl.refreshTitle': "Actualiser l'état Git",
+  'sourceControl.emptyNoFolder': 'Ouvrez un dossier pour utiliser le contrôle de code source.', 'sourceControl.loadingStatus': "Chargement de l'état Git…",
+  'sourceControl.notRepo': "Ce dossier n'est pas un dépôt Git.", 'sourceControl.initRepo': 'Initialiser le dépôt',
+  'sourceControl.noBranch': 'Aucune branche pour le moment', 'sourceControl.commitPlaceholder': 'Message de validation',
+  'sourceControl.commitButton': 'Valider les fichiers sélectionnés', 'sourceControl.pushButton': 'Pousser vers origin',
+  'sourceControl.originLabel': 'Origine distante', 'sourceControl.updateOrigin': 'Mettre à jour origin', 'sourceControl.addOrigin': 'Ajouter origin',
+  'sourceControl.changesTitle': 'MODIFICATIONS', 'sourceControl.workingTreeClean': 'Arborescence de travail propre',
+  'sourceControl.githubAccount': 'COMPTE GITHUB', 'sourceControl.connectedAs': 'Connecté en tant que {username}',
+  'sourceControl.connectPrompt': 'Connectez GitHub pour authentifier les envois.', 'sourceControl.signInGithub': 'Se connecter avec GitHub',
+  'sourceControl.checkConnection': 'Vérifier la connexion', 'sourceControl.cliRequired': 'Le CLI GitHub est requis pour connecter un compte.',
+  'sourceControl.getCli': 'Obtenir le CLI GitHub', 'sourceControl.checkAgain': 'Vérifier à nouveau',
+  'sourceControl.noticeInit': 'Dépôt Git initialisé', 'sourceControl.noticeCommit': 'Validation créée',
+  'sourceControl.noticeOrigin': 'Origine distante enregistrée', 'sourceControl.noticePush': 'Envoi terminé',
+  'sourceControl.pushConfirm': 'Pousser {branch} vers origin ?'
+};
+
+const es: Record<Key, string> = {
+  'common.save': 'Guardar', 'common.refresh': 'Actualizar', 'common.delete': 'Eliminar', 'common.rename': 'Cambiar nombre',
+  'common.download': 'Descargar', 'common.edit': 'Editar', 'common.done': 'Listo', 'common.loading': 'Cargando…',
+  'common.pleaseWait': 'Espere, por favor…', 'common.openFolder': 'Abrir carpeta', 'common.run': 'Ejecutar',
+  'common.approve': 'Aprobar', 'common.decline': 'Rechazar',
+
+  'topbar.back': 'Atrás', 'topbar.forward': 'Adelante', 'topbar.openFolderTitle': 'Abrir una carpeta de proyecto',
+  'topbar.toggleExplorer': 'Alternar explorador', 'topbar.togglePanel': 'Alternar panel',
+  'topbar.toggleAgentRoom': 'Alternar sala de agentes',
+
+  'sidebar.explorer': 'Explorador', 'sidebar.sourceControl': 'Control de código fuente', 'sidebar.openFolder': 'Abrir carpeta',
+  'sidebar.agentRoom': 'Sala de agentes', 'sidebar.terminal': 'Terminal', 'sidebar.account': 'Cuenta de Kelus', 'sidebar.settings': 'Configuración',
+
+  'explorer.title': 'EXPLORADOR', 'explorer.actionsTitle': 'Acciones del explorador', 'explorer.newFile': 'Nuevo archivo',
+  'explorer.newFolder': 'Nueva carpeta', 'explorer.rename': 'Cambiar nombre', 'explorer.delete': 'Eliminar', 'explorer.refresh': 'Actualizar',
+  'explorer.openEditors': 'EDITORES ABIERTOS', 'explorer.closeTab': 'Cerrar {path}', 'explorer.newFileShort': 'Nuevo archivo',
+  'explorer.newFolderShort': 'Nueva carpeta', 'explorer.noFolderOpen': 'NINGUNA CARPETA ABIERTA',
+  'explorer.emptyMessage': 'Todavía no has abierto una carpeta.',
+
+  'tabs.empty': 'No hay editores abiertos', 'tabs.saveTitle': 'Guardar archivo',
+
+  'editorEmpty.subtitle': 'Abre un archivo o pide a los agentes que trabajen en tu proyecto.',
+  'editorEmpty.openAgentRoom': 'Abrir sala de agentes',
+
+  'bottomPanel.terminal': 'TERMINAL', 'bottomPanel.testOutput': 'SALIDA DE PRUEBAS', 'bottomPanel.logs': 'REGISTROS',
+  'bottomPanel.hide': 'Ocultar panel', 'bottomPanel.terminalPlaceholder': 'Introduce un comando de shell',
+  'bottomPanel.noTestRun': 'Todavía no se ha ejecutado ninguna prueba.', 'bottomPanel.noLogs': 'No hay registros.',
+
+  'agentPanel.title': 'AGENTES', 'agentPanel.close': 'Cerrar sala de agentes', 'agentPanel.emptyTitle': 'Sala de agentes',
+  'agentPanel.emptyBody': 'Dale a Kelus una tarea de programación. Las decisiones y evidencias de los agentes aparecerán aquí.',
+  'agentPanel.approvalRequired': 'APROBACIÓN REQUERIDA',
+  'agentPanel.approvalDescription': 'Revisa el cambio propuesto. La aprobación permite esta escritura de archivo.',
+  'agentPanel.approvalDescriptionWithCommand': 'Revisa el cambio propuesto. La aprobación permite esta escritura de archivo y el comando: {command}.',
+  'agentPanel.kindClaim': 'afirmación', 'agentPanel.kindEvidence': 'evidencia',
+  'agentPanel.kindCounterargument': 'contraargumento', 'agentPanel.kindDecision': 'decisión',
+  'agentPanel.taskPlaceholder': 'Pide a Kelus que modifique tu proyecto…', 'agentPanel.testCommandPlaceholder': 'Comando de prueba (opcional)',
+  'agentPanel.runAgents': 'Ejecutar agentes', 'agentPanel.evidenceSummary': 'Evidencia',
+
+  'verification.title': 'VERIFICACIÓN', 'verification.unavailable': 'No disponible', 'verification.testCommand': 'Comando de prueba',
+  'verification.tests': 'Pruebas', 'verification.security': 'Seguridad', 'verification.requirements': 'Requisitos',
+  'verification.disagreements': 'Desacuerdos', 'verification.revisions': 'Revisiones', 'verification.modelCalls': 'Llamadas al modelo',
+  'verification.tokens': 'Tokens', 'verification.time': 'Tiempo', 'verification.cost': 'Costo',
+  'verification.passed': 'Aprobado', 'verification.failed': 'Fallido ({code})',
+
+  'statusbar.noFolderOpen': 'Ninguna carpeta abierta', 'statusbar.agentsWorking': 'Agentes trabajando',
+
+  'settings.title': 'Configuración', 'settings.subtitle': 'Apariencia y modelos de agentes', 'settings.close': 'Cerrar configuración',
+  'settings.appearance': 'Apariencia', 'settings.colorTheme': 'Tema de color', 'settings.agentModels': 'Modelos de agentes',
+  'settings.profileHint': 'Guarda varios perfiles de proveedor y elige cuál usan los agentes. Cada uno conserva su propio endpoint, modelo y clave.',
+  'settings.providerMock': 'Simulado', 'settings.providerOpenAI': 'Compatible con OpenAI',
+  'settings.profileName': 'Nombre del perfil', 'settings.profileNamePlaceholder': 'p. ej., OpenAI, Groq, Ollama local',
+  'settings.apiEndpoint': 'Endpoint de la API', 'settings.modelNameLabel': 'Nombre del modelo', 'settings.modelIdPlaceholder': 'ID del modelo',
+  'settings.apiKeyLabel': 'Clave de API', 'settings.apiKeySaved': 'Clave guardada (déjalo en blanco para mantenerla)',
+  'settings.apiKeyEnter': 'Introduce la clave de API', 'settings.removeApiKey': 'Eliminar clave de API guardada',
+  'settings.addProfile': '+ Agregar perfil de proveedor',
+  'settings.keyStorageEncrypted': 'Las claves se cifran mediante el almacenamiento seguro de tu sistema operativo.',
+  'settings.keyStorageSession': 'El almacenamiento seguro no está disponible. Las claves permanecen en memoria solo durante esta sesión.',
+  'settings.save': 'Guardar configuración', 'settings.saving': 'Guardando…', 'settings.saved': 'Configuración guardada',
+  'settings.language': 'Idioma', 'settings.languageHint': 'Cambia el idioma de la interfaz de Kelus.',
+
+  'account.title': 'Cuenta de Kelus', 'account.subtitle': 'Inicia sesión y sincroniza proyectos con Kelus Cloud',
+  'account.close': 'Cerrar cuenta', 'account.createTitle': 'Crea tu cuenta de Kelus', 'account.signInTitle': 'Inicia sesión en Kelus',
+  'account.namePlaceholder': 'Nombre', 'account.emailPlaceholder': 'Correo electrónico', 'account.passwordPlaceholder': 'Contraseña',
+  'account.createButton': 'Crear cuenta', 'account.signInButton': 'Iniciar sesión',
+  'account.hasAccount': '¿Ya tienes una cuenta?', 'account.newToKelus': '¿Eres nuevo en Kelus?',
+  'account.createAccountLink': 'Crear una cuenta', 'account.signOut': 'Cerrar sesión', 'account.cloudSyncTitle': 'Sincronización en la nube',
+  'account.syncDescription': 'Sincroniza el proyecto abierto ({name}) con Kelus Cloud. Útil cuando un proyecto supera ~100 MB y quieres una copia fuera del dispositivo.',
+  'account.syncNoProject': 'Abre una carpeta de proyecto para sincronizarla.', 'account.syncing': 'Sincronizando…', 'account.syncButton': 'Sincronizar con la nube',
+  'account.progressZipping': 'Comprimiendo proyecto… {percent}%', 'account.progressUploading': 'Subiendo a Kelus Cloud…',
+  'account.progressSaving': 'Guardando registro del proyecto…', 'account.progressDone': 'Listo', 'account.syncNotice': 'Proyecto sincronizado.',
+  'account.projectsTitle': 'Proyectos sincronizados', 'account.noProjects': 'Todavía no hay proyectos sincronizados.',
+  'account.downloadedTo': 'Descargado en {destination}',
+  'account.deleteConfirm': '¿Eliminar la copia en la nube de {name}? Esta acción no se puede deshacer.',
+
+  'sourceControl.title': 'CONTROL DE CÓDIGO FUENTE', 'sourceControl.refreshTitle': 'Actualizar estado de Git',
+  'sourceControl.emptyNoFolder': 'Abre una carpeta para usar el control de código fuente.', 'sourceControl.loadingStatus': 'Cargando estado de Git…',
+  'sourceControl.notRepo': 'Esta carpeta no es un repositorio Git.', 'sourceControl.initRepo': 'Inicializar repositorio',
+  'sourceControl.noBranch': 'Todavía no hay rama', 'sourceControl.commitPlaceholder': 'Mensaje de confirmación',
+  'sourceControl.commitButton': 'Confirmar archivos seleccionados', 'sourceControl.pushButton': 'Enviar a origin',
+  'sourceControl.originLabel': 'Remoto origin', 'sourceControl.updateOrigin': 'Actualizar origin', 'sourceControl.addOrigin': 'Agregar origin',
+  'sourceControl.changesTitle': 'CAMBIOS', 'sourceControl.workingTreeClean': 'Árbol de trabajo limpio',
+  'sourceControl.githubAccount': 'CUENTA DE GITHUB', 'sourceControl.connectedAs': 'Conectado como {username}',
+  'sourceControl.connectPrompt': 'Conecta GitHub para autenticar los envíos.', 'sourceControl.signInGithub': 'Iniciar sesión con GitHub',
+  'sourceControl.checkConnection': 'Comprobar conexión', 'sourceControl.cliRequired': 'Se requiere GitHub CLI para conectar una cuenta.',
+  'sourceControl.getCli': 'Obtener GitHub CLI', 'sourceControl.checkAgain': 'Comprobar de nuevo',
+  'sourceControl.noticeInit': 'Repositorio Git inicializado', 'sourceControl.noticeCommit': 'Confirmación creada',
+  'sourceControl.noticeOrigin': 'Remoto origin guardado', 'sourceControl.noticePush': 'Envío completado',
+  'sourceControl.pushConfirm': '¿Enviar {branch} a origin?'
+};
+
+const de: Record<Key, string> = {
+  'common.save': 'Speichern', 'common.refresh': 'Aktualisieren', 'common.delete': 'Löschen', 'common.rename': 'Umbenennen',
+  'common.download': 'Herunterladen', 'common.edit': 'Bearbeiten', 'common.done': 'Fertig', 'common.loading': 'Wird geladen…',
+  'common.pleaseWait': 'Bitte warten…', 'common.openFolder': 'Ordner öffnen', 'common.run': 'Ausführen',
+  'common.approve': 'Genehmigen', 'common.decline': 'Ablehnen',
+
+  'topbar.back': 'Zurück', 'topbar.forward': 'Vor', 'topbar.openFolderTitle': 'Projektordner öffnen',
+  'topbar.toggleExplorer': 'Explorer umschalten', 'topbar.togglePanel': 'Panel umschalten',
+  'topbar.toggleAgentRoom': 'Agentenraum umschalten',
+
+  'sidebar.explorer': 'Explorer', 'sidebar.sourceControl': 'Quellcodeverwaltung', 'sidebar.openFolder': 'Ordner öffnen',
+  'sidebar.agentRoom': 'Agentenraum', 'sidebar.terminal': 'Terminal', 'sidebar.account': 'Kelus-Konto', 'sidebar.settings': 'Einstellungen',
+
+  'explorer.title': 'EXPLORER', 'explorer.actionsTitle': 'Explorer-Aktionen', 'explorer.newFile': 'Neue Datei',
+  'explorer.newFolder': 'Neuer Ordner', 'explorer.rename': 'Umbenennen', 'explorer.delete': 'Löschen', 'explorer.refresh': 'Aktualisieren',
+  'explorer.openEditors': 'GEÖFFNETE EDITOREN', 'explorer.closeTab': '{path} schließen', 'explorer.newFileShort': 'Neue Datei',
+  'explorer.newFolderShort': 'Neuer Ordner', 'explorer.noFolderOpen': 'KEIN ORDNER GEÖFFNET',
+  'explorer.emptyMessage': 'Sie haben noch keinen Ordner geöffnet.',
+
+  'tabs.empty': 'Keine geöffneten Editoren', 'tabs.saveTitle': 'Datei speichern',
+
+  'editorEmpty.subtitle': 'Öffnen Sie eine Datei oder lassen Sie die Agenten an Ihrem Projekt arbeiten.',
+  'editorEmpty.openAgentRoom': 'Agentenraum öffnen',
+
+  'bottomPanel.terminal': 'TERMINAL', 'bottomPanel.testOutput': 'TESTAUSGABE', 'bottomPanel.logs': 'PROTOKOLLE',
+  'bottomPanel.hide': 'Panel ausblenden', 'bottomPanel.terminalPlaceholder': 'Shell-Befehl eingeben',
+  'bottomPanel.noTestRun': 'Es wurde noch kein Test ausgeführt.', 'bottomPanel.noLogs': 'Keine Protokolle.',
+
+  'agentPanel.title': 'AGENTEN', 'agentPanel.close': 'Agentenraum schließen', 'agentPanel.emptyTitle': 'Agentenraum',
+  'agentPanel.emptyBody': 'Geben Sie Kelus eine Programmieraufgabe. Entscheidungen und Belege der Agenten erscheinen hier.',
+  'agentPanel.approvalRequired': 'GENEHMIGUNG ERFORDERLICH',
+  'agentPanel.approvalDescription': 'Überprüfen Sie den vorgeschlagenen Diff. Die Genehmigung erlaubt diesen Dateischreibvorgang.',
+  'agentPanel.approvalDescriptionWithCommand': 'Überprüfen Sie den vorgeschlagenen Diff. Die Genehmigung erlaubt diesen Dateischreibvorgang und den Befehl: {command}.',
+  'agentPanel.kindClaim': 'Behauptung', 'agentPanel.kindEvidence': 'Beleg',
+  'agentPanel.kindCounterargument': 'Gegenargument', 'agentPanel.kindDecision': 'Entscheidung',
+  'agentPanel.taskPlaceholder': 'Bitten Sie Kelus, Ihr Projekt zu ändern…', 'agentPanel.testCommandPlaceholder': 'Testbefehl (optional)',
+  'agentPanel.runAgents': 'Agenten ausführen', 'agentPanel.evidenceSummary': 'Belege',
+
+  'verification.title': 'VERIFIZIERUNG', 'verification.unavailable': 'Nicht verfügbar', 'verification.testCommand': 'Testbefehl',
+  'verification.tests': 'Tests', 'verification.security': 'Sicherheit', 'verification.requirements': 'Anforderungen',
+  'verification.disagreements': 'Meinungsverschiedenheiten', 'verification.revisions': 'Überarbeitungen', 'verification.modelCalls': 'Modellaufrufe',
+  'verification.tokens': 'Tokens', 'verification.time': 'Zeit', 'verification.cost': 'Kosten',
+  'verification.passed': 'Bestanden', 'verification.failed': 'Fehlgeschlagen ({code})',
+
+  'statusbar.noFolderOpen': 'Kein Ordner geöffnet', 'statusbar.agentsWorking': 'Agenten arbeiten',
+
+  'settings.title': 'Einstellungen', 'settings.subtitle': 'Erscheinungsbild und Agentenmodelle', 'settings.close': 'Einstellungen schließen',
+  'settings.appearance': 'Erscheinungsbild', 'settings.colorTheme': 'Farbthema', 'settings.agentModels': 'Agentenmodelle',
+  'settings.profileHint': 'Speichern Sie mehrere Anbieterprofile und wählen Sie, welches die Agenten verwenden. Jedes behält seinen eigenen Endpunkt, sein Modell und seinen Schlüssel.',
+  'settings.providerMock': 'Simuliert', 'settings.providerOpenAI': 'OpenAI-kompatibel',
+  'settings.profileName': 'Profilname', 'settings.profileNamePlaceholder': 'z. B. OpenAI, Groq, lokales Ollama',
+  'settings.apiEndpoint': 'API-Endpunkt', 'settings.modelNameLabel': 'Modellname', 'settings.modelIdPlaceholder': 'Modell-ID',
+  'settings.apiKeyLabel': 'API-Schlüssel', 'settings.apiKeySaved': 'Gespeicherter Schlüssel (leer lassen, um ihn zu behalten)',
+  'settings.apiKeyEnter': 'API-Schlüssel eingeben', 'settings.removeApiKey': 'Gespeicherten API-Schlüssel entfernen',
+  'settings.addProfile': '+ Anbieterprofil hinzufügen',
+  'settings.keyStorageEncrypted': 'Schlüssel werden mit dem sicheren Speicher Ihres Betriebssystems verschlüsselt.',
+  'settings.keyStorageSession': 'Sicherer Speicher ist nicht verfügbar. Schlüssel bleiben nur für diese Sitzung im Speicher.',
+  'settings.save': 'Einstellungen speichern', 'settings.saving': 'Wird gespeichert…', 'settings.saved': 'Einstellungen gespeichert',
+  'settings.language': 'Sprache', 'settings.languageHint': 'Ändert die Oberflächensprache von Kelus.',
+
+  'account.title': 'Kelus-Konto', 'account.subtitle': 'Melden Sie sich an und synchronisieren Sie Projekte mit Kelus Cloud',
+  'account.close': 'Konto schließen', 'account.createTitle': 'Erstellen Sie Ihr Kelus-Konto', 'account.signInTitle': 'Bei Kelus anmelden',
+  'account.namePlaceholder': 'Name', 'account.emailPlaceholder': 'E-Mail', 'account.passwordPlaceholder': 'Passwort',
+  'account.createButton': 'Konto erstellen', 'account.signInButton': 'Anmelden',
+  'account.hasAccount': 'Haben Sie bereits ein Konto?', 'account.newToKelus': 'Neu bei Kelus?',
+  'account.createAccountLink': 'Konto erstellen', 'account.signOut': 'Abmelden', 'account.cloudSyncTitle': 'Cloud-Synchronisierung',
+  'account.syncDescription': 'Synchronisieren Sie das geöffnete Projekt ({name}) mit Kelus Cloud. Nützlich, sobald ein Projekt ~100 MB überschreitet und Sie eine Kopie außerhalb des Geräts möchten.',
+  'account.syncNoProject': 'Öffnen Sie einen Projektordner, um ihn zu synchronisieren.', 'account.syncing': 'Wird synchronisiert…', 'account.syncButton': 'Mit Cloud synchronisieren',
+  'account.progressZipping': 'Projekt wird gepackt… {percent}%', 'account.progressUploading': 'Wird zu Kelus Cloud hochgeladen…',
+  'account.progressSaving': 'Projektdatensatz wird gespeichert…', 'account.progressDone': 'Fertig', 'account.syncNotice': 'Projekt synchronisiert.',
+  'account.projectsTitle': 'Synchronisierte Projekte', 'account.noProjects': 'Es wurden noch keine Projekte synchronisiert.',
+  'account.downloadedTo': 'Heruntergeladen nach {destination}',
+  'account.deleteConfirm': 'Die Cloud-Kopie von {name} löschen? Dies kann nicht rückgängig gemacht werden.',
+
+  'sourceControl.title': 'QUELLCODEVERWALTUNG', 'sourceControl.refreshTitle': 'Git-Status aktualisieren',
+  'sourceControl.emptyNoFolder': 'Öffnen Sie einen Ordner, um die Quellcodeverwaltung zu nutzen.', 'sourceControl.loadingStatus': 'Git-Status wird geladen…',
+  'sourceControl.notRepo': 'Dieser Ordner ist kein Git-Repository.', 'sourceControl.initRepo': 'Repository initialisieren',
+  'sourceControl.noBranch': 'Noch kein Branch', 'sourceControl.commitPlaceholder': 'Commit-Nachricht',
+  'sourceControl.commitButton': 'Ausgewählte Dateien committen', 'sourceControl.pushButton': 'Zu origin pushen',
+  'sourceControl.originLabel': 'Origin-Remote', 'sourceControl.updateOrigin': 'Origin aktualisieren', 'sourceControl.addOrigin': 'Origin hinzufügen',
+  'sourceControl.changesTitle': 'ÄNDERUNGEN', 'sourceControl.workingTreeClean': 'Arbeitsverzeichnis sauber',
+  'sourceControl.githubAccount': 'GITHUB-KONTO', 'sourceControl.connectedAs': 'Verbunden als {username}',
+  'sourceControl.connectPrompt': 'Verbinden Sie GitHub, um Pushes zu authentifizieren.', 'sourceControl.signInGithub': 'Mit GitHub anmelden',
+  'sourceControl.checkConnection': 'Verbindung prüfen', 'sourceControl.cliRequired': 'Zum Verbinden eines Kontos ist die GitHub-CLI erforderlich.',
+  'sourceControl.getCli': 'GitHub-CLI herunterladen', 'sourceControl.checkAgain': 'Erneut prüfen',
+  'sourceControl.noticeInit': 'Git-Repository initialisiert', 'sourceControl.noticeCommit': 'Commit erstellt',
+  'sourceControl.noticeOrigin': 'Origin-Remote gespeichert', 'sourceControl.noticePush': 'Push abgeschlossen',
+  'sourceControl.pushConfirm': '{branch} zu origin pushen?'
+};
+
+const ja: Record<Key, string> = {
+  'common.save': '保存', 'common.refresh': '更新', 'common.delete': '削除', 'common.rename': '名前を変更',
+  'common.download': 'ダウンロード', 'common.edit': '編集', 'common.done': '完了', 'common.loading': '読み込み中…',
+  'common.pleaseWait': 'しばらくお待ちください…', 'common.openFolder': 'フォルダーを開く', 'common.run': '実行',
+  'common.approve': '承認', 'common.decline': '拒否',
+
+  'topbar.back': '戻る', 'topbar.forward': '進む', 'topbar.openFolderTitle': 'プロジェクトフォルダーを開く',
+  'topbar.toggleExplorer': 'エクスプローラーの切り替え', 'topbar.togglePanel': 'パネルの切り替え',
+  'topbar.toggleAgentRoom': 'エージェントルームの切り替え',
+
+  'sidebar.explorer': 'エクスプローラー', 'sidebar.sourceControl': 'ソース管理', 'sidebar.openFolder': 'フォルダーを開く',
+  'sidebar.agentRoom': 'エージェントルーム', 'sidebar.terminal': 'ターミナル', 'sidebar.account': 'Kelus アカウント', 'sidebar.settings': '設定',
+
+  'explorer.title': 'エクスプローラー', 'explorer.actionsTitle': 'エクスプローラー操作', 'explorer.newFile': '新しいファイル',
+  'explorer.newFolder': '新しいフォルダー', 'explorer.rename': '名前を変更', 'explorer.delete': '削除', 'explorer.refresh': '更新',
+  'explorer.openEditors': '開いているエディター', 'explorer.closeTab': '{path} を閉じる', 'explorer.newFileShort': '新しいファイル',
+  'explorer.newFolderShort': '新しいフォルダー', 'explorer.noFolderOpen': 'フォルダーが開かれていません',
+  'explorer.emptyMessage': 'まだフォルダーを開いていません。',
+
+  'tabs.empty': '開いているエディターはありません', 'tabs.saveTitle': 'ファイルを保存',
+
+  'editorEmpty.subtitle': 'ファイルを開くか、エージェントにプロジェクトの作業を依頼してください。',
+  'editorEmpty.openAgentRoom': 'エージェントルームを開く',
+
+  'bottomPanel.terminal': 'ターミナル', 'bottomPanel.testOutput': 'テスト出力', 'bottomPanel.logs': 'ログ',
+  'bottomPanel.hide': 'パネルを非表示', 'bottomPanel.terminalPlaceholder': 'シェルコマンドを入力',
+  'bottomPanel.noTestRun': 'まだテストは実行されていません。', 'bottomPanel.noLogs': 'ログがありません。',
+
+  'agentPanel.title': 'エージェント', 'agentPanel.close': 'エージェントルームを閉じる', 'agentPanel.emptyTitle': 'エージェントルーム',
+  'agentPanel.emptyBody': 'Kelus にコーディングタスクを与えてください。エージェントの判断と根拠がここに表示されます。',
+  'agentPanel.approvalRequired': '承認が必要です',
+  'agentPanel.approvalDescription': '提案された差分を確認してください。承認するとこのファイルの書き込みが許可されます。',
+  'agentPanel.approvalDescriptionWithCommand': '提案された差分を確認してください。承認するとこのファイルの書き込みと次のコマンドが許可されます: {command}。',
+  'agentPanel.kindClaim': '主張', 'agentPanel.kindEvidence': '根拠',
+  'agentPanel.kindCounterargument': '反論', 'agentPanel.kindDecision': '決定',
+  'agentPanel.taskPlaceholder': 'Kelus にプロジェクトの変更を依頼…', 'agentPanel.testCommandPlaceholder': 'テストコマンド(任意)',
+  'agentPanel.runAgents': 'エージェントを実行', 'agentPanel.evidenceSummary': '根拠',
+
+  'verification.title': '検証', 'verification.unavailable': '利用不可', 'verification.testCommand': 'テストコマンド',
+  'verification.tests': 'テスト', 'verification.security': 'セキュリティ', 'verification.requirements': '要件',
+  'verification.disagreements': '意見の相違', 'verification.revisions': '修正回数', 'verification.modelCalls': 'モデル呼び出し',
+  'verification.tokens': 'トークン', 'verification.time': '時間', 'verification.cost': 'コスト',
+  'verification.passed': '合格', 'verification.failed': '失敗 ({code})',
+
+  'statusbar.noFolderOpen': 'フォルダーが開かれていません', 'statusbar.agentsWorking': 'エージェント作業中',
+
+  'settings.title': '設定', 'settings.subtitle': '外観とエージェントモデル', 'settings.close': '設定を閉じる',
+  'settings.appearance': '外観', 'settings.colorTheme': 'カラーテーマ', 'settings.agentModels': 'エージェントモデル',
+  'settings.profileHint': '複数のプロバイダープロファイルを保存し、エージェントが使用するものを選択できます。各プロファイルは独自のエンドポイント、モデル、キーを保持します。',
+  'settings.providerMock': 'モック', 'settings.providerOpenAI': 'OpenAI 互換',
+  'settings.profileName': 'プロファイル名', 'settings.profileNamePlaceholder': '例: OpenAI、Groq、ローカル Ollama',
+  'settings.apiEndpoint': 'API エンドポイント', 'settings.modelNameLabel': 'モデル名', 'settings.modelIdPlaceholder': 'モデル ID',
+  'settings.apiKeyLabel': 'API キー', 'settings.apiKeySaved': '保存済みのキー(維持する場合は空欄のまま)',
+  'settings.apiKeyEnter': 'API キーを入力', 'settings.removeApiKey': '保存済みの API キーを削除',
+  'settings.addProfile': '+ プロバイダープロファイルを追加',
+  'settings.keyStorageEncrypted': 'キーはお使いの OS のセキュアストレージを使って暗号化されます。',
+  'settings.keyStorageSession': 'セキュアストレージが利用できません。キーはこのセッション中のみメモリに保持されます。',
+  'settings.save': '設定を保存', 'settings.saving': '保存中…', 'settings.saved': '設定を保存しました',
+  'settings.language': '言語', 'settings.languageHint': 'Kelus のインターフェース言語を変更します。',
+
+  'account.title': 'Kelus アカウント', 'account.subtitle': 'サインインしてプロジェクトを Kelus Cloud に同期',
+  'account.close': 'アカウントを閉じる', 'account.createTitle': 'Kelus アカウントを作成', 'account.signInTitle': 'Kelus にサインイン',
+  'account.namePlaceholder': '名前', 'account.emailPlaceholder': 'メールアドレス', 'account.passwordPlaceholder': 'パスワード',
+  'account.createButton': 'アカウントを作成', 'account.signInButton': 'サインイン',
+  'account.hasAccount': 'すでにアカウントをお持ちですか?', 'account.newToKelus': 'Kelus は初めてですか?',
+  'account.createAccountLink': 'アカウントを作成', 'account.signOut': 'サインアウト', 'account.cloudSyncTitle': 'クラウド同期',
+  'account.syncDescription': '開いているプロジェクト({name})を Kelus Cloud に同期します。プロジェクトが約 100MB を超え、デバイス外にコピーを持ちたい場合に便利です。',
+  'account.syncNoProject': '同期するにはプロジェクトフォルダーを開いてください。', 'account.syncing': '同期中…', 'account.syncButton': 'クラウドに同期',
+  'account.progressZipping': 'プロジェクトを圧縮中… {percent}%', 'account.progressUploading': 'Kelus Cloud にアップロード中…',
+  'account.progressSaving': 'プロジェクト記録を保存中…', 'account.progressDone': '完了', 'account.syncNotice': 'プロジェクトを同期しました。',
+  'account.projectsTitle': '同期済みプロジェクト', 'account.noProjects': 'まだ同期されたプロジェクトはありません。',
+  'account.downloadedTo': '{destination} にダウンロードしました',
+  'account.deleteConfirm': '{name} のクラウドコピーを削除しますか? この操作は元に戻せません。',
+
+  'sourceControl.title': 'ソース管理', 'sourceControl.refreshTitle': 'Git ステータスを更新',
+  'sourceControl.emptyNoFolder': 'ソース管理を使用するにはフォルダーを開いてください。', 'sourceControl.loadingStatus': 'Git ステータスを読み込み中…',
+  'sourceControl.notRepo': 'このフォルダーは Git リポジトリではありません。', 'sourceControl.initRepo': 'リポジトリを初期化',
+  'sourceControl.noBranch': 'まだブランチがありません', 'sourceControl.commitPlaceholder': 'コミットメッセージ',
+  'sourceControl.commitButton': '選択したファイルをコミット', 'sourceControl.pushButton': 'origin にプッシュ',
+  'sourceControl.originLabel': 'Origin リモート', 'sourceControl.updateOrigin': 'origin を更新', 'sourceControl.addOrigin': 'origin を追加',
+  'sourceControl.changesTitle': '変更', 'sourceControl.workingTreeClean': 'ワーキングツリーはクリーンです',
+  'sourceControl.githubAccount': 'GITHUB アカウント', 'sourceControl.connectedAs': '{username} として接続済み',
+  'sourceControl.connectPrompt': 'プッシュを認証するには GitHub を接続してください。', 'sourceControl.signInGithub': 'GitHub でサインイン',
+  'sourceControl.checkConnection': '接続を確認', 'sourceControl.cliRequired': 'アカウントを接続するには GitHub CLI が必要です。',
+  'sourceControl.getCli': 'GitHub CLI を入手', 'sourceControl.checkAgain': 'もう一度確認',
+  'sourceControl.noticeInit': 'Git リポジトリを初期化しました', 'sourceControl.noticeCommit': 'コミットを作成しました',
+  'sourceControl.noticeOrigin': 'Origin リモートを保存しました', 'sourceControl.noticePush': 'プッシュが完了しました',
+  'sourceControl.pushConfirm': '{branch} を origin にプッシュしますか?'
+};
+
+const zh: Record<Key, string> = {
+  'common.save': '保存', 'common.refresh': '刷新', 'common.delete': '删除', 'common.rename': '重命名',
+  'common.download': '下载', 'common.edit': '编辑', 'common.done': '完成', 'common.loading': '加载中…',
+  'common.pleaseWait': '请稍候…', 'common.openFolder': '打开文件夹', 'common.run': '运行',
+  'common.approve': '批准', 'common.decline': '拒绝',
+
+  'topbar.back': '后退', 'topbar.forward': '前进', 'topbar.openFolderTitle': '打开项目文件夹',
+  'topbar.toggleExplorer': '切换资源管理器', 'topbar.togglePanel': '切换面板', 'topbar.toggleAgentRoom': '切换代理室',
+
+  'sidebar.explorer': '资源管理器', 'sidebar.sourceControl': '源代码管理', 'sidebar.openFolder': '打开文件夹',
+  'sidebar.agentRoom': '代理室', 'sidebar.terminal': '终端', 'sidebar.account': 'Kelus 账户', 'sidebar.settings': '设置',
+
+  'explorer.title': '资源管理器', 'explorer.actionsTitle': '资源管理器操作', 'explorer.newFile': '新建文件',
+  'explorer.newFolder': '新建文件夹', 'explorer.rename': '重命名', 'explorer.delete': '删除', 'explorer.refresh': '刷新',
+  'explorer.openEditors': '打开的编辑器', 'explorer.closeTab': '关闭 {path}', 'explorer.newFileShort': '新建文件',
+  'explorer.newFolderShort': '新建文件夹', 'explorer.noFolderOpen': '未打开文件夹',
+  'explorer.emptyMessage': '您尚未打开任何文件夹。',
+
+  'tabs.empty': '没有打开的编辑器', 'tabs.saveTitle': '保存文件',
+
+  'editorEmpty.subtitle': '打开一个文件,或让代理处理您的项目。',
+  'editorEmpty.openAgentRoom': '打开代理室',
+
+  'bottomPanel.terminal': '终端', 'bottomPanel.testOutput': '测试输出', 'bottomPanel.logs': '日志',
+  'bottomPanel.hide': '隐藏面板', 'bottomPanel.terminalPlaceholder': '输入 Shell 命令',
+  'bottomPanel.noTestRun': '尚未运行任何测试。', 'bottomPanel.noLogs': '没有日志。',
+
+  'agentPanel.title': '代理', 'agentPanel.close': '关闭代理室', 'agentPanel.emptyTitle': '代理室',
+  'agentPanel.emptyBody': '给 Kelus 一个编码任务。代理的决策和证据将显示在此处。',
+  'agentPanel.approvalRequired': '需要批准',
+  'agentPanel.approvalDescription': '请查看建议的差异。批准将允许写入此文件。',
+  'agentPanel.approvalDescriptionWithCommand': '请查看建议的差异。批准将允许写入此文件并执行命令:{command}。',
+  'agentPanel.kindClaim': '主张', 'agentPanel.kindEvidence': '证据',
+  'agentPanel.kindCounterargument': '反驳', 'agentPanel.kindDecision': '决定',
+  'agentPanel.taskPlaceholder': '让 Kelus 修改您的项目…', 'agentPanel.testCommandPlaceholder': '测试命令(可选)',
+  'agentPanel.runAgents': '运行代理', 'agentPanel.evidenceSummary': '证据',
+
+  'verification.title': '验证', 'verification.unavailable': '不可用', 'verification.testCommand': '测试命令',
+  'verification.tests': '测试', 'verification.security': '安全', 'verification.requirements': '需求',
+  'verification.disagreements': '分歧', 'verification.revisions': '修订次数', 'verification.modelCalls': '模型调用',
+  'verification.tokens': '令牌', 'verification.time': '时间', 'verification.cost': '费用',
+  'verification.passed': '通过', 'verification.failed': '失败 ({code})',
+
+  'statusbar.noFolderOpen': '未打开文件夹', 'statusbar.agentsWorking': '代理工作中',
+
+  'settings.title': '设置', 'settings.subtitle': '外观和代理模型', 'settings.close': '关闭设置',
+  'settings.appearance': '外观', 'settings.colorTheme': '颜色主题', 'settings.agentModels': '代理模型',
+  'settings.profileHint': '保存多个提供商配置文件,并选择代理使用哪一个。每个配置文件保留各自的端点、模型和密钥。',
+  'settings.providerMock': '模拟', 'settings.providerOpenAI': 'OpenAI 兼容',
+  'settings.profileName': '配置文件名称', 'settings.profileNamePlaceholder': '例如:OpenAI、Groq、本地 Ollama',
+  'settings.apiEndpoint': 'API 端点', 'settings.modelNameLabel': '模型名称', 'settings.modelIdPlaceholder': '模型 ID',
+  'settings.apiKeyLabel': 'API 密钥', 'settings.apiKeySaved': '已保存的密钥(留空以保留)',
+  'settings.apiKeyEnter': '输入 API 密钥', 'settings.removeApiKey': '删除已保存的 API 密钥',
+  'settings.addProfile': '+ 添加提供商配置文件',
+  'settings.keyStorageEncrypted': '密钥使用您操作系统的安全存储进行加密。',
+  'settings.keyStorageSession': '安全存储不可用。密钥仅在本次会话期间保留在内存中。',
+  'settings.save': '保存设置', 'settings.saving': '保存中…', 'settings.saved': '设置已保存',
+  'settings.language': '语言', 'settings.languageHint': '更改 Kelus 界面语言。',
+
+  'account.title': 'Kelus 账户', 'account.subtitle': '登录并将项目同步到 Kelus Cloud',
+  'account.close': '关闭账户', 'account.createTitle': '创建您的 Kelus 账户', 'account.signInTitle': '登录 Kelus',
+  'account.namePlaceholder': '姓名', 'account.emailPlaceholder': '电子邮件', 'account.passwordPlaceholder': '密码',
+  'account.createButton': '创建账户', 'account.signInButton': '登录',
+  'account.hasAccount': '已有账户?', 'account.newToKelus': '初次使用 Kelus?',
+  'account.createAccountLink': '创建账户', 'account.signOut': '退出登录', 'account.cloudSyncTitle': '云同步',
+  'account.syncDescription': '将打开的项目({name})同步到 Kelus Cloud。当项目超过约 100MB 且您需要设备外备份时非常有用。',
+  'account.syncNoProject': '打开一个项目文件夹以进行同步。', 'account.syncing': '同步中…', 'account.syncButton': '同步到云端',
+  'account.progressZipping': '正在压缩项目… {percent}%', 'account.progressUploading': '正在上传到 Kelus Cloud…',
+  'account.progressSaving': '正在保存项目记录…', 'account.progressDone': '完成', 'account.syncNotice': '项目已同步。',
+  'account.projectsTitle': '已同步的项目', 'account.noProjects': '尚未同步任何项目。',
+  'account.downloadedTo': '已下载到 {destination}',
+  'account.deleteConfirm': '删除 {name} 的云端副本?此操作无法撤销。',
+
+  'sourceControl.title': '源代码管理', 'sourceControl.refreshTitle': '刷新 Git 状态',
+  'sourceControl.emptyNoFolder': '打开一个文件夹以使用源代码管理。', 'sourceControl.loadingStatus': '正在加载 Git 状态…',
+  'sourceControl.notRepo': '此文件夹不是 Git 仓库。', 'sourceControl.initRepo': '初始化仓库',
+  'sourceControl.noBranch': '尚无分支', 'sourceControl.commitPlaceholder': '提交信息',
+  'sourceControl.commitButton': '提交所选文件', 'sourceControl.pushButton': '推送到 origin',
+  'sourceControl.originLabel': 'Origin 远程仓库', 'sourceControl.updateOrigin': '更新 origin', 'sourceControl.addOrigin': '添加 origin',
+  'sourceControl.changesTitle': '更改', 'sourceControl.workingTreeClean': '工作区干净',
+  'sourceControl.githubAccount': 'GITHUB 账户', 'sourceControl.connectedAs': '以 {username} 身份连接',
+  'sourceControl.connectPrompt': '连接 GitHub 以验证推送身份。', 'sourceControl.signInGithub': '使用 GitHub 登录',
+  'sourceControl.checkConnection': '检查连接', 'sourceControl.cliRequired': '连接账户需要 GitHub CLI。',
+  'sourceControl.getCli': '获取 GitHub CLI', 'sourceControl.checkAgain': '再次检查',
+  'sourceControl.noticeInit': 'Git 仓库已初始化', 'sourceControl.noticeCommit': '提交已创建',
+  'sourceControl.noticeOrigin': 'Origin 远程仓库已保存', 'sourceControl.noticePush': '推送完成',
+  'sourceControl.pushConfirm': '将 {branch} 推送到 origin?'
+};
+
+const dictionaries: Record<Locale, Record<Key, string>> = { en, ko, fr, es, de, ja, zh };
+
+let current = $state<Locale>('en');
+export function setLocale(value: Locale): void { current = value; }
+export function getLocale(): Locale { return current; }
+export function t(key: Key, vars?: Record<string, string | number>): string {
+  let text = dictionaries[current][key] ?? en[key] ?? key;
+  if (vars) for (const [name, value] of Object.entries(vars)) text = text.replaceAll(`{${name}}`, String(value));
+  return text;
+}

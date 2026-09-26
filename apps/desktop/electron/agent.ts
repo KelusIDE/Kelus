@@ -2,15 +2,19 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import path from 'node:path';
 import { app, type WebContents } from 'electron';
 import { workspaceRoot } from './workspace';
+import { modelEnvironment } from './settings';
 
 let agent: ChildProcessWithoutNullStreams | null = null;
-export function startAgent(task: string, testCommand: string, web: WebContents): void {
+export async function startAgent(task: string, testCommand: string, web: WebContents): Promise<void> {
   const root = workspaceRoot();
   if (!root) throw new Error('Open a project folder first');
   if (agent) throw new Error('An agent task is already running');
+  const env = { ...process.env };
+  delete env.KELUS_MODEL_URL; delete env.KELUS_MODEL_NAME; delete env.KELUS_MODEL_API_KEY;
+  Object.assign(env, await modelEnvironment());
   const backend = path.join(app.getAppPath(), 'agent-engine', 'main.py');
   agent = spawn(process.env.KELUS_PYTHON || 'python3', [backend, '--workspace', root, '--task', task, '--test-command', testCommand], {
-    cwd: root, stdio: 'pipe', env: process.env
+    cwd: root, stdio: 'pipe', env
   });
   let buffer = '';
   agent.stdout.on('data', chunk => {

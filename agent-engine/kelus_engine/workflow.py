@@ -28,7 +28,7 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider,
     started = time.monotonic()
     record: dict[str, Any] = {
         'task_id': str(uuid.uuid4()), 'task_description': task,
-        'agents_used': ['Orchestrator', 'Coder', 'Tester', 'Reviewer'] if test_command else ['Orchestrator', 'Coder', 'Reviewer'],
+        'agents_used': ['Orchestrator', 'Coder', 'Tester', 'Reviewer', 'Judge'] if test_command else ['Orchestrator', 'Coder', 'Reviewer', 'Judge'],
         'models': {}, 'model_calls': 0, 'input_tokens': None, 'output_tokens': None,
         'runtime_seconds': None, 'estimated_cost': None, 'files_changed': [],
         'tests_passed': None, 'tests_total': None, 'test_exit_code': None, 'test_output': None,
@@ -39,8 +39,15 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider,
     }
     service = ExecutionService(root)
     originals: dict[str, str | None] = {}
-    def event(agent: str, status: str, message: str, **extra: Any) -> None:
-        send({'type': 'agent', 'agent': agent, 'status': status, 'message': message, **extra})
+    def event(agent: str, status: str, message: str, *, kind: str | None = None, debate: bool = False, **extra: Any) -> None:
+        # `kind` places this event on the evidence-based arbitration path (see docs/architecture.md):
+        # claim (Coder) -> evidence (Tester) -> counterargument (Reviewer, when it disagrees) -> decision (Judge).
+        payload: dict[str, Any] = {'type': 'agent', 'agent': agent, 'status': status, 'message': message, **extra}
+        if kind:
+            payload['kind'] = kind
+        if debate:
+            payload['debate'] = True
+        send(payload)
     def call(role: str, prompt: str) -> str:
         response = provider.complete(role, prompt)
         record['model_calls'] += 1
@@ -55,7 +62,7 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider,
               evidence={'task_id': record['task_id'], 'test_command': test_command or None})
         feedback = ''
         for attempt in range(3):
-            event('Coder', 'working', 'Preparing a one-file candidate.' if not feedback else f'Revising after: {feedback}')
+            event('Coder', 'working', 'Preparing a one-file candidate.' if not feedback else f'Revising after: {feedback}', kind='claim')
             prompt = task if not feedback else f'{task}\n\nPrevious review/test feedback: {feedback}'
             candidate = json.loads(call('coder', prompt))
             if 'error' in candidate:
@@ -74,14 +81,14 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider,
             service.write_approved(relative, content, True)
             if relative not in record['files_changed']:
                 record['files_changed'].append(relative)
-            event('Coder', 'done', f'Wrote {relative}.', evidence={'path': relative})
+            event('Coder', 'done', f'Wrote {relative}.', kind='claim', evidence={'path': relative})
             code, output = (service.run_approved(test_command, True) if test_command else (0, 'No test command supplied.'))
             tests_ok = code == 0
             record['test_output'] = output
             if test_command:
                 record['test_exit_code'] = code
             event('Tester', 'passed' if tests_ok and test_command else ('failed' if test_command else 'unavailable'),
-                  f'Test command exited {code}.' if test_command else 'No test command supplied.',
+                  f'Test command exited {code}.' if test_command else 'No test command supplied.', kind='evidence',
                   evidence={'command': test_command or None, 'exit_code': code if test_command else None, 'output': output})
             actual = service.read(relative)
             review_prompt = json.dumps({'task': task, 'path': relative, 'before': before,
@@ -91,18 +98,21 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider,
             approved = review.get('approved') is True and tests_ok
             reason = str(review.get('reason', 'No reason supplied'))
             event('Reviewer', 'approved' if approved else 'rejected', reason,
+                  kind='evidence' if approved else 'counterargument', debate=not approved,
                   evidence={'file_matches_proposal': actual == content, 'test_exit_code': code if test_command else None})
             if approved:
                 record['final_outcome'] = 'verified' if test_command else 'reviewed_without_tests'
-                event('Orchestrator', 'complete', 'Verification passed.' if test_command else 'Review passed; test evidence unavailable.')
+                event('Judge', 'complete', 'Verification passed.' if test_command else 'Review passed; test evidence unavailable.',
+                      kind='decision', evidence={'reviewer_approved': True, 'tests_ok': tests_ok if test_command else None})
                 break
             record['disagreements'] += 1
             record['revisions'] += 1
             feedback = f'{reason}\nTest output: {output}'
-            event('Orchestrator', 'revision', 'Reviewer rejected candidate; returning to Coder.', evidence={'reason': reason})
+            event('Judge', 'revision', 'Requesting revision from Coder because the evidence supports the review finding.',
+                  kind='decision', evidence={'reason': reason, 'tests_ok': tests_ok if test_command else None})
         else:
             record['final_outcome'] = 'failed_verification'
-            event('Orchestrator', 'failed', 'Revision limit reached without verification.')
+            event('Judge', 'failed', 'Revision limit reached without verification.', kind='decision')
     except Exception as error:
         record['final_outcome'] = 'error'
         send({'type': 'error', 'message': str(error)})

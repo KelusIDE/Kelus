@@ -21,7 +21,7 @@
 {#each entries as entry (entry.path)}
   <button class="tree-row" style:padding-left={`${path.split('/').filter(Boolean).length * 14 + 12}px`} onclick={() => select(entry)} title={entry.path}>
     <span class="twisty">{entry.directory ? (expanded[entry.path] ? '⌄' : '›') : ' '}</span>
-    <FileIcon name={entry.name} directory={entry.directory}/>
+    <FileIcon name={entry.name} directory={entry.directory} expanded={Boolean(expanded[entry.path])}/>
     <span class="file-name">{entry.name}</span>
     {#if entry.git}<span class="git-mark">{entry.git}</span>{/if}
   </button>

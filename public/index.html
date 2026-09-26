@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kelus — AI-native multi-agent IDE</title>
+  <meta name="description" content="Sign in to Kelus to sync large projects to the cloud and manage your account.">
+  <link rel="icon" href="/icon.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <img src="/icon.png" alt="Kelus">
+    <span class="brand">Kelus</span>
+    <div class="spacer"></div>
+    <div id="nav-signed-out">
+      <a class="button" href="#/login">Sign in</a>
+      <a class="button primary" href="#/signup">Create account</a>
+    </div>
+    <div id="nav-signed-in" hidden>
+      <a class="button" href="#/dashboard">Dashboard</a>
+      <button id="sign-out">Sign out</button>
+    </div>
+  </nav>
+
+  <main id="view-home">
+    <section class="hero">
+      <h1>Kelus</h1>
+      <p>An AI-native multi-agent IDE. Specialized agents propose, challenge, and verify
+        changes with executable evidence before anything reaches your project. Create a
+        Kelus account to sync large projects to the cloud from the desktop app.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#/signup">Create a free account</a>
+        <a class="button" href="#/login">Sign in</a>
+      </div>
+    </section>
+    <section class="features">
+      <div class="feature"><h3>Evidence, not majority vote</h3><p>Claim → evidence → counterargument → Judge decision. Disagreements are resolved with executable tests and code inspection, not a headcount.</p></div>
+      <div class="feature"><h3>Dynamic agent allocation</h3><p>The Orchestrator estimates difficulty, risk, and uncertainty, then assembles only the agents a task needs.</p></div>
+      <div class="feature"><h3>Cloud sync for big projects</h3><p>Sign in on desktop and sync a project once it grows past what you want to keep only on one machine.</p></div>
+    </section>
+  </main>
+
+  <main id="view-login" class="page" hidden>
+    <div class="card">
+      <h1>Sign in</h1>
+      <p class="subtitle">Use your Kelus account to sync projects from the desktop app.</p>
+      <form id="login-form">
+        <div class="field"><label for="login-email">Email</label><input id="login-email" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="login-password">Password</label><input id="login-password" type="password" required autocomplete="current-password"></div>
+        <div class="form-actions"><button type="submit">Sign in</button></div>
+        <p id="login-error" class="error-text" hidden></p>
+      </form>
+      <p class="switch-line">New to Kelus? <a href="#/signup">Create an account</a></p>
+    </div>
+  </main>
+
+  <main id="view-signup" class="page" hidden>
+    <div class="card">
+      <h1>Create your Kelus account</h1>
+      <p class="subtitle">Free to create. Used to sync projects to Kelus Cloud from the desktop app.</p>
+      <form id="signup-form">
+        <div class="field"><label for="signup-name">Name</label><input id="signup-name" type="text" autocomplete="name"></div>
+        <div class="field"><label for="signup-email">Email</label><input id="signup-email" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="signup-password">Password</label><input id="signup-password" type="password" required minlength="6" autocomplete="new-password"></div>
+        <div class="form-actions"><button type="submit">Create account</button></div>
+        <p id="signup-error" class="error-text" hidden></p>
+      </form>
+      <p class="switch-line">Already have an account? <a href="#/login">Sign in</a></p>
+    </div>
+  </main>
+
+  <main id="view-dashboard" class="dashboard" hidden>
+    <div class="dash-header">
+      <div><h1>Your Kelus Cloud</h1><p>Projects synced from the Kelus desktop app.</p></div>
+    </div>
+    <div class="profile-card">
+      <div><div class="name" id="profile-name"></div><div class="email" id="profile-email"></div></div>
+      <button id="sign-out-dash">Sign out</button>
+    </div>
+    <div class="section-title">Synced projects</div>
+    <div class="project-list" id="project-list"></div>
+    <p class="empty-note" id="project-empty" hidden>No projects synced yet. Open Kelus on desktop, sign in, and choose “Sync to Cloud”.</p>
+  </main>
+
+  <footer class="footer">Kelus</footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

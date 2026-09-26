@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Synced project archives live at users/{uid}/projects/{projectId}.zip. Only the owning
+// account may read or write its own files; everything else is denied by default.
+// The 2 GiB cap matches this project's current Firebase Storage quota headroom on the
+// Spark plan, not a Kelus-specific policy — raise it if the project moves to Blaze.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/projects/{fileName} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 2 * 1024 * 1024 * 1024;
+    }
+  }
+}

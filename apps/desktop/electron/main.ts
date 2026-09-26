@@ -1,8 +1,18 @@
-import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
 import path from 'node:path';
 import * as workspace from './workspace';
 import * as execution from './execution';
 import * as agent from './agent';
+import * as settings from './settings';
+import * as git from './git';
+import * as account from './account';
+import * as cloud from './cloud';
+
+function requireRoot(): string {
+  const root = workspace.workspaceRoot();
+  if (!root) throw new Error('Open a project folder first');
+  return root;
+}
 
 function createWindow(): void {
   const iconPath = path.join(app.getAppPath(), 'assets', 'icons', process.platform === 'win32' ? 'kelus.ico' : 'kelus.png');
@@ -32,6 +42,23 @@ app.whenReady().then(() => {
   ipcMain.on('terminal:resize', (_e, cols: number, rows: number) => execution.resizeTerminal(cols, rows));
   ipcMain.handle('agent:start', (event, task: string, command: string) => agent.startAgent(task, command, event.sender));
   ipcMain.handle('agent:decision', (_e, approved: boolean) => agent.agentDecision(approved));
+  ipcMain.handle('settings:get', () => settings.publicSettings());
+  ipcMain.handle('settings:update', (_e, value: settings.SettingsUpdate) => settings.updateSettings(value));
+  ipcMain.handle('git:status', () => git.snapshot(requireRoot()));
+  ipcMain.handle('git:init', () => git.init(requireRoot()));
+  ipcMain.handle('git:origin', (_e, url: string) => git.setOrigin(requireRoot(), url));
+  ipcMain.handle('git:commit', (_e, message: string, paths: string[]) => git.commit(requireRoot(), message, paths));
+  ipcMain.handle('git:push', () => git.push(requireRoot()));
+  ipcMain.handle('github:status', () => git.githubStatus());
+  ipcMain.handle('github:download', () => shell.openExternal('https://cli.github.com/'));
+  ipcMain.handle('account:current', () => account.currentAccount());
+  ipcMain.handle('account:signUp', (_e, email: string, password: string, displayName: string) => account.signUp(email, password, displayName));
+  ipcMain.handle('account:signIn', (_e, email: string, password: string) => account.signIn(email, password));
+  ipcMain.handle('account:signOut', () => account.signOut());
+  ipcMain.handle('cloud:list', () => cloud.listProjects());
+  ipcMain.handle('cloud:sync', (event) => cloud.syncProject(requireRoot(), progress => event.sender.send('sync:progress', progress)));
+  ipcMain.handle('cloud:download', (_e, id: string) => cloud.downloadProject(id));
+  ipcMain.handle('cloud:delete', (_e, id: string) => cloud.deleteProject(id));
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

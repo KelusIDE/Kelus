@@ -5,3 +5,8 @@ dist-ui/
 __pycache__/
 *.pyc
 .DS_Store
+firebase-debug.log
+.firebase/
+.agents/
+.claude/
+skills-lock.json
