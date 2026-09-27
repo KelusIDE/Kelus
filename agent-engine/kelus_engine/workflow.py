@@ -70,7 +70,7 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider | Team
     record: dict[str, Any] = {
         'task_id': str(uuid.uuid4()), 'task_description': task,
         'agents_used': ['Orchestrator', 'Coder', 'Tester', 'Reviewer', 'Judge'] if test_command else ['Orchestrator', 'Coder', 'Reviewer', 'Judge'],
-        'models': {}, 'model_calls': 0, 'input_tokens': None, 'output_tokens': None,
+        'models': {}, 'usage': {}, 'model_calls': 0, 'input_tokens': None, 'output_tokens': None,
         'runtime_seconds': None, 'estimated_cost': None, 'files_changed': [],
         'tests_passed': None, 'tests_total': None, 'test_exit_code': None, 'test_output': None,
         'hidden_test_results': None,
@@ -96,6 +96,10 @@ def run(task: str, test_command: str, root: Path, provider: ModelProvider | Team
         for key, value in [('input_tokens', response.input_tokens), ('output_tokens', response.output_tokens)]:
             if value is not None:
                 record[key] = (record[key] or 0) + value
+        usage = record['usage'].setdefault(response.model, {'calls': 0, 'input_tokens': 0, 'output_tokens': 0})
+        usage['calls'] += 1
+        usage['input_tokens'] += response.input_tokens or 0
+        usage['output_tokens'] += response.output_tokens or 0
         return response.text
     def seat_tag(seat: Seat) -> dict[str, Any]:
         return {'model': seat.name} if team.debate or team.panel else {}

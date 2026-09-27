@@ -38,7 +38,8 @@ async function post(url: string, body: Record<string, string>): Promise<Record<s
 
 /** Starts the device flow and returns the code to show; completion is reported on the `github:connect` channel. */
 export async function startGithubConnect(web: WebContents): Promise<{ userCode: string; verificationUri: string }> {
-  if (!githubClientId) throw new Error('GitHub sync is not set up yet: add the GitHub OAuth app client ID to githubConfig.ts.');
+  // Developer setup, done once per build: users never see or edit githubConfig.ts.
+  if (!githubClientId) throw new Error('GitHub sync is not available in this build of Kelus yet.');
   cancelGithubConnect();
   const start = await post('https://github.com/login/device/code', { client_id: githubClientId, scope: 'repo' });
   if (!start.device_code) {

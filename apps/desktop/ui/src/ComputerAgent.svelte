@@ -3,9 +3,18 @@
   import { t } from './i18n.svelte';
   import type { AgentConfig, ComputerEvent, ComputerPermissions, ProviderProfile } from './types';
 
-  let { config, profiles, activeProfileId, onChange }: {
+  let { config, profiles, activeProfileId, onChange, onProfilesChanged }: {
     config: AgentConfig; profiles: ProviderProfile[]; activeProfileId: string; onChange: (next: AgentConfig) => void;
+    onProfilesChanged: () => Promise<void>;
   } = $props();
+  let local = $state<{ installed: boolean; running: boolean; hasModel: boolean; model: string } | null>(null);
+  let localProgress = $state<{ status: string; percent?: number; error?: boolean } | null>(null);
+  let usingLocal = $derived(profiles.some(p => p.id === config.computer.profileId && /localhost|127\.0\.0\.1/.test(p.modelUrl)));
+  async function setupLocal() {
+    localProgress = { status: '…' };
+    try { await window.kelus.ollamaSetup(); await onProfilesChanged(); local = await window.kelus.ollamaStatus(); localProgress = null; }
+    catch (cause) { localProgress = { status: String(cause).replace(/^Error:\s*(Error invoking remote method '[^']+': )?(Error: )?/, ''), error: true }; }
+  }
 
   type LogLine = { kind: 'step' | 'done' | 'failed' | 'stopped' | 'error' | 'invalid'; text: string; detail?: string };
   let permissions = $state<ComputerPermissions | null>(null);
@@ -43,10 +52,12 @@
 
   onMount(() => {
     refreshPermissions();
+    window.kelus.ollamaStatus().then(value => local = value).catch(() => undefined);
+    const offOllama = window.kelus.onOllamaProgress(event => { if (!event.done) localProgress = { status: event.status, percent: event.percent, error: event.error }; });
     const off = window.kelus.onComputerEvent(handle);
     const onFocus = () => refreshPermissions();
     window.addEventListener('focus', onFocus);
-    return () => { off(); window.removeEventListener('focus', onFocus); };
+    return () => { off(); offOllama(); window.removeEventListener('focus', onFocus); };
   });
 </script>
 
@@ -71,6 +82,19 @@
         <span>{t('computer.maxSteps')}</span>
         <input type="number" min="1" max="100" value={computer.maxSteps} disabled={running} onchange={(e) => setComputer({ maxSteps: Number(e.currentTarget.value) || 30 })}/>
       </div>
+      {#if !usingLocal}
+        <div class="free-card">
+          <strong>{t('computer.freeTitle')}</strong>
+          <p>{t('computer.freeBody', { model: local?.model ?? 'qwen2.5vl:7b' })}</p>
+          {#if localProgress && !localProgress.error}
+            <div class="free-progress"><div style:width={`${localProgress.percent ?? 0}%`}></div></div>
+            <span class="free-status">{localProgress.status}{localProgress.percent != null ? ` · ${localProgress.percent}%` : ''}</span>
+          {:else}
+            <button onclick={setupLocal} disabled={running}>{local?.hasModel ? t('computer.freeUse') : t('computer.freeSetup')}</button>
+            {#if localProgress?.error}<span class="error">{localProgress.status}</span>{/if}
+          {/if}
+        </div>
+      {/if}
       <label class="confirm"><input type="checkbox" checked={computer.confirmEachAction} disabled={running} onchange={(e) => setComputer({ confirmEachAction: e.currentTarget.checked })}/>{t('computer.confirm')}</label>
       {#if !ready}<p class="hint">{t('computer.restartHint')}</p>{/if}
     {/if}
@@ -111,6 +135,12 @@
   .grid button { justify-self: start; color: var(--accent); font-size: 11px; }
   .grid select, .grid input { min-width: 0; background: var(--bg-input); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 11px; padding: 2px 4px; }
   .ok { color: var(--status-good); }
+  .free-card { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--bg-elevated); }
+  .free-card p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.45; }
+  .free-card button { align-self: flex-start; padding: 5px 12px; border-radius: 4px; background: var(--accent); color: var(--accent-contrast); font-size: 11px; }
+  .free-progress { height: 5px; border-radius: 3px; background: var(--bg-input); overflow: hidden; }
+  .free-progress div { height: 100%; background: var(--accent); transition: width 0.3s; }
+  .free-status { font-size: 10px; color: var(--text-faint); }
   .confirm { display: flex; gap: 6px; align-items: center; color: var(--text); }
   .hint { margin: 0; color: var(--text-faint); font-size: 11px; }
   .status { margin: 0; color: var(--status-warn); }

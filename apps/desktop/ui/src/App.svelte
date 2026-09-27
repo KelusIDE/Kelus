@@ -11,17 +11,21 @@
   import SourceControl from './SourceControl.svelte';
   import SettingsView from './SettingsView.svelte';
   import AccountView from './AccountView.svelte';
+  import UsageView from './UsageView.svelte';
+  import LiveSharePanel from './LiveSharePanel.svelte';
+  import { REMOTE_PREFIX, closeRemote, isShared, live, refreshCursors, saveRemote, setLiveHooks, stopHosting } from './liveshare.svelte';
   import { monaco, applyEditorTheme, terminalTheme } from './monaco';
   import { language } from './language';
   import { t, setLocale } from './i18n.svelte';
   import type { AgentConfig, AgentEvent, RunRecord, Settings, Theme } from './types';
 
-  type Tab = { path: string; content: string; saved: string };
+  type Tab = { path: string; content: string; saved: string; live?: boolean };
   let root: string | null = null;
   let tabs: Tab[] = [];
   let active = '';
   let refresh = 0;
   let error = '';
+  let statusNote = '';
   let task = '';
   let testCommand = '';
   let running = false;
@@ -31,9 +35,10 @@
   let bottom: 'terminal' | 'tests' | 'logs' = 'terminal';
   let terminalCommand = '';
   let explorerVisible = true;
-  let sideMode: 'explorer' | 'source' = 'explorer';
+  let sideMode: 'explorer' | 'source' | 'live' = 'explorer';
   let settingsOpen = false;
   let accountOpen = false;
+  let usageOpen = false;
   let settings: Settings | null = null;
   let agentConfig: AgentConfig | null = null;
   let agentMode: 'code' | 'computer' = 'code';
@@ -68,11 +73,14 @@
     const model = active && !(isNotebook(active) && !rawNotebooks.has(active)) ? tabModels.get(active) ?? null : null;
     editor.setModel(model);
     if (model && focus) editor.focus();
+    if (live.role !== 'none') refreshCursors();
   }
   function notebookChanged(path: string, json: string) {
     const tab = tabs.find(t => t.path === path);
     if (!tab) return;
     tab.content = json; tabs = [...tabs];
+    // Guests edit the shared text model, so push notebook-view edits into it.
+    if (isShared(path)) tabModels.get(path)?.setValue(json);
   }
   function runInTerminal(command: string) {
     bottom = 'terminal'; bottomVisible = true;
@@ -83,10 +91,24 @@
     editor = monaco.editor.create(editorHost, { theme: `kelus-${theme}`, automaticLayout: true, minimap: { enabled: false },
       fontFamily: 'SFMono-Regular, Consolas, monospace', fontSize: 13, padding: { top: 20 },
       scrollBeyondLastLine: false, model: null });
-    editor.onDidChangeModelContent(() => {
-      const tab = tabs.find(t => t.path === active);
-      if (tab && editor.getModel()) { tab.content = editor.getValue(); tabs = [...tabs]; }
+  }
+  /** Each tab's model reports its own edits, so a tab changed while not on screen (e.g. by a Live Share guest) still saves correctly. */
+  function addModel(path: string, model: monaco.editor.ITextModel) {
+    tabModels.set(path, model);
+    model.onDidChangeContent(() => {
+      const tab = tabs.find(t => t.path === path);
+      if (tab && !tab.live) { tab.content = model.getValue(); tabs = [...tabs]; }
     });
+  }
+  async function loadTab(path: string): Promise<monaco.editor.ITextModel> {
+    const existing = tabModels.get(path);
+    if (existing) return existing;
+    const content = await window.kelus.readFile(path);
+    if (!tabModels.has(path)) {
+      tabs = [...tabs, { path, content, saved: content }];
+      addModel(path, monaco.editor.createModel(content, language(path), monaco.Uri.file(path)));
+    }
+    return tabModels.get(path)!;
   }
   onMount(() => {
     createEditor();
@@ -102,6 +124,29 @@
     window.kelus.getSettings().then(value => { settings = value; setTheme(value.theme); setLocale(value.locale); }).catch(report);
     window.kelus.agentConfig().then(value => agentConfig = value).catch(report);
     window.kelus.startTerminal(terminal.cols, terminal.rows).catch(report);
+    setLiveHooks({
+      ensureModel: loadTab,
+      async saveFile(path) {
+        const model = tabModels.get(path), tab = tabs.find(t => t.path === path);
+        if (!model || !tab) return;
+        const value = model.getValue();
+        await window.kelus.writeFile(path, value);
+        tab.content = value; tab.saved = value; tabs = [...tabs]; refresh++;
+      },
+      openRemote(path, model) {
+        const key = REMOTE_PREFIX + path;
+        if (!tabs.some(t => t.path === key)) { tabs = [...tabs, { path: key, content: '', saved: '', live: true }]; tabModels.set(key, model); }
+        if (settingsOpen) closeSettings();
+        accountOpen = false; active = key; attachEditorModel(true);
+      },
+      remoteSaved(path) { error = ''; statusNote = t('live.savedOnHost', { path }); setTimeout(() => statusNote = '', 2500); },
+      closeRemoteTabs() {
+        for (const tab of tabs.filter(t => t.live)) { tabModels.get(tab.path)?.dispose(); tabModels.delete(tab.path); }
+        tabs = tabs.filter(t => !t.live);
+        if (active.startsWith(REMOTE_PREFIX)) { active = tabs.at(-1)?.path || ''; attachEditorModel(false); }
+      },
+      editors: () => [editor]
+    });
     return () => { terminalResize.dispose(); offTerminal(); offAgent(); observer.disconnect(); terminal.dispose(); editor.dispose(); diff?.dispose(); tabModels.forEach(m => m.dispose()); };
   });
 
@@ -114,9 +159,9 @@
       root = value; refresh++; closeAll(); terminal.clear(); await window.kelus.startTerminal(terminal.cols, terminal.rows);
     } catch (cause) { report(cause); }
   }
-  function closeAll() { tabs = []; active = ''; editor.setModel(null); tabModels.forEach(m => m.dispose()); tabModels.clear(); }
+  function closeAll() { if (live.role === 'host') stopHosting(); tabs = []; active = ''; editor.setModel(null); tabModels.forEach(m => m.dispose()); tabModels.clear(); }
   function setTheme(value: Theme) { theme = value; document.documentElement.dataset.theme = value; applyEditorTheme(value); if (terminal) terminal.options.theme = terminalTheme(value); }
-  async function openSettings() { try { settings = await window.kelus.getSettings(); settingsOpen = true; accountOpen = false; } catch (cause) { report(cause); } }
+  async function openSettings() { try { settings = await window.kelus.getSettings(); settingsOpen = true; accountOpen = false; usageOpen = false; } catch (cause) { report(cause); } }
   function closeSettings() { settingsOpen = false; if (settings) { setTheme(settings.theme); setLocale(settings.locale); } }
   function connectGithub() {
     bottom = 'terminal'; bottomVisible = true;
@@ -125,14 +170,9 @@
   async function openFile(path: string) {
     if (pending) return;
     if (settingsOpen) closeSettings();
-    accountOpen = false;
+    accountOpen = false; usageOpen = false;
     try {
-      let tab = tabs.find(t => t.path === path);
-      if (!tab) {
-        const content = await window.kelus.readFile(path);
-        tab = { path, content, saved: content }; tabs = [...tabs, tab];
-        tabModels.set(path, monaco.editor.createModel(content, language(path), monaco.Uri.file(path)));
-      }
+      if (!path.startsWith(REMOTE_PREFIX)) await loadTab(path);
       active = path; attachEditorModel(true);
     } catch (cause) { report(cause); }
   }
@@ -141,14 +181,17 @@
     notebookViews[active]?.flush();
     const tab = tabs.find(t => t.path === active);
     if (!tab) return;
-    try { await window.kelus.writeFile(tab.path, tab.content); tab.saved = tab.content; tabs = [...tabs]; refresh++; }
+    if (tab.live) { saveRemote(tab.path.slice(REMOTE_PREFIX.length)); return; }
+    const value = isNotebook(tab.path) ? tab.content : tabModels.get(tab.path)?.getValue() ?? tab.content;
+    try { await window.kelus.writeFile(tab.path, value); tab.content = value; tab.saved = value; tabs = [...tabs]; refresh++; }
     catch (cause) { report(cause); }
   }
   function closeTab(path: string) {
     if (pending) return;
     notebookViews[path]?.flush();
     const tab = tabs.find(t => t.path === path);
-    if (tab && tab.content !== tab.saved && !confirm(`Discard unsaved changes to ${path}?`)) return;
+    if (tab?.live) closeRemote(path.slice(REMOTE_PREFIX.length));
+    else if (tab && tab.content !== tab.saved && !confirm(`Discard unsaved changes to ${path}?`)) return;
     tabs = tabs.filter(t => t.path !== path); tabModels.get(path)?.dispose(); tabModels.delete(path);
     if (active === path) { active = tabs.at(-1)?.path || ''; attachEditorModel(false); }
   }
@@ -178,7 +221,7 @@
   }
   async function reloadActive() {
     const tab = tabs.find(t => t.path === active);
-    if (!tab || tab.content !== tab.saved) return;
+    if (!tab || tab.live || tab.content !== tab.saved) return;
     try { const content = await window.kelus.readFile(active); tab.content = content; tab.saved = content; tabModels.get(active)?.setValue(content); tabs = [...tabs]; }
     catch { /* File may have been removed outside Kelus. */ }
   }
@@ -242,6 +285,9 @@
         <button class:active={explorerVisible && sideMode === 'explorer'} aria-label={t('sidebar.explorer')} title={t('sidebar.explorer')} onclick={() => { explorerVisible = true; sideMode = 'explorer'; }}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5h9l5 5V21H5zM14 2.5V8h5M8 12h8M8 16h8"/></svg>
         </button>
+        <button class:active={explorerVisible && sideMode === 'live'} class:live-on={live.role === 'host' || live.role === 'guest'} aria-label={t('sidebar.liveShare')} title={t('sidebar.liveShare')} onclick={() => { explorerVisible = true; sideMode = 'live'; }}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.8.4 5 2.8 5 5.8"/></svg>
+        </button>
         <button class:active={explorerVisible && sideMode === 'source'} aria-label={t('sidebar.sourceControl')} title={t('sidebar.sourceControl')} onclick={() => { explorerVisible = true; sideMode = 'source'; }}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="5" r="2"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="16" r="2"/><path d="M7 7v10m0-4c0-4 10 0 10-5v6"/></svg>
         </button>
@@ -255,10 +301,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM6 8l3 3-3 3M11 15h6"/></svg>
         </button>
       </div>
-      <div class="activity-bottom"><button aria-label={t('sidebar.account')} title={t('sidebar.account')} class:active={accountOpen} onclick={() => { accountOpen = true; settingsOpen = false; }}>◍</button><button aria-label={t('sidebar.settings')} title={t('sidebar.settings')} class:active={settingsOpen} onclick={openSettings}>⚙</button><img src="./icon.png" alt="Kelus" title="Kelus"/></div>
+      <div class="activity-bottom"><button aria-label={t('sidebar.usage')} title={t('sidebar.usage')} class:active={usageOpen} onclick={() => { usageOpen = true; accountOpen = false; settingsOpen = false; }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button><button aria-label={t('sidebar.account')} title={t('sidebar.account')} class:active={accountOpen} onclick={() => { accountOpen = true; settingsOpen = false; usageOpen = false; }}>◍</button><button aria-label={t('sidebar.settings')} title={t('sidebar.settings')} class:active={settingsOpen} onclick={openSettings}>⚙</button><img src="./icon.png" alt="Kelus" title="Kelus"/></div>
     </nav>
     {#if explorerVisible}
-      {#if sideMode === 'source'}<aside class="explorer">{#key root}<SourceControl {root} onError={report} onChanged={() => refresh++} onConnect={connectGithub}/>{/key}</aside>{:else}<aside class="explorer">
+      {#if sideMode === 'live'}<aside class="explorer"><LiveSharePanel {root} onError={report}/></aside>{:else if sideMode === 'source'}<aside class="explorer">{#key root}<SourceControl {root} onError={report} onChanged={() => refresh++} onConnect={connectGithub}/>{/key}</aside>{:else}<aside class="explorer">
         <div class="side-title"><span>{t('explorer.title')}</span><button aria-label={t('explorer.actionsTitle')} title={t('explorer.actionsTitle')} onclick={() => explorerMenu = !explorerMenu}>···</button></div>
         {#if explorerMenu}
           <div class="explorer-menu">
@@ -272,7 +318,7 @@
         <div class="side-section-label">⌄ &nbsp; {t('explorer.openEditors')} <span>{tabs.length}</span></div>
         {#each tabs as tab}
           <div class="open-editor" class:selected={active === tab.path}>
-            <button class="open-editor-name" onclick={() => openFile(tab.path)}><FileIcon name={tab.path}/>{tab.path.split('/').at(-1)}{tab.content !== tab.saved ? ' ●' : ''}</button>
+            <button class="open-editor-name" class:live-tab={tab.live} onclick={() => openFile(tab.path)}><FileIcon name={tab.path}/>{tab.path.replace(REMOTE_PREFIX, '').split('/').at(-1)}{tab.content !== tab.saved ? ' ●' : ''}</button>
             <button class="open-editor-close" aria-label={t('explorer.closeTab', { path: tab.path })} onclick={() => closeTab(tab.path)}>×</button>
           </div>
         {/each}
@@ -285,7 +331,7 @@
       <div class="tabs">
         {#each tabs as tab}
           <div class="tab-item" class:active={active === tab.path}>
-            <button class="tab-name" onclick={() => openFile(tab.path)}><FileIcon name={tab.path}/>{tab.path.split('/').at(-1)}{tab.content !== tab.saved ? ' ●' : ''}</button>
+            <button class="tab-name" class:live-tab={tab.live} title={tab.live ? t('sidebar.liveShare') : tab.path} onclick={() => openFile(tab.path)}><FileIcon name={tab.path}/>{tab.path.replace(REMOTE_PREFIX, '').split('/').at(-1)}{tab.content !== tab.saved ? ' ●' : ''}</button>
             <button class="tab-close" aria-label={t('explorer.closeTab', { path: tab.path })} onclick={() => closeTab(tab.path)}>×</button>
           </div>
         {/each}
@@ -293,17 +339,17 @@
         <button class="save-button" title={t('tabs.saveTitle')} onclick={save} disabled={!active || !!pending}>{t('common.save')}</button>
       </div>
       {#if active && !pending}<div class="breadcrumbs"><span>{active.split('/').join('  ›  ')}</span>{#if isNotebook(active)}<button class="nb-toggle" onclick={toggleNotebookRaw}>{rawNotebooks.has(active) ? t('notebook.preview') : t('notebook.viewSource')}</button>{/if}</div>{/if}
-      <div class="editor-wrap"><div bind:this={editorHost} class="editor-host" style:display={showNotebookPreview ? 'none' : 'block'}></div>{#each tabs.filter(tab => isNotebook(tab.path)) as tab (tab.path)}<div class="notebook-scroll" style:display={showNotebookPreview && active === tab.path ? 'block' : 'none'}><NotebookView bind:this={notebookViews[tab.path]} path={tab.path} content={tab.content} visible={showNotebookPreview && active === tab.path} onChange={(json) => notebookChanged(tab.path, json)} onTerminal={runInTerminal}/></div>{/each}{#if !active && !pending && !settingsOpen && !accountOpen}<div class="editor-empty"><img class="welcome-mark" src="./icon.png" alt="Kelus icon"/><h2>Kelus</h2><p>{t('editorEmpty.subtitle')}</p><div class="welcome-actions"><button onclick={openWorkspace}>{t('common.openFolder')}</button><button onclick={() => agentVisible = true}>{t('editorEmpty.openAgentRoom')}</button></div></div>{/if}{#if settingsOpen && settings}<SettingsView {settings} onSaved={(value) => { settings = value; setTheme(value.theme); setLocale(value.locale); }} onClose={closeSettings} onPreview={setTheme} onPreviewLocale={setLocale}/>{/if}{#if accountOpen}<AccountView {root} onError={report} onClose={() => accountOpen = false}/>{/if}</div>
+      <div class="editor-wrap"><div bind:this={editorHost} class="editor-host" style:display={showNotebookPreview ? 'none' : 'block'}></div>{#each tabs.filter(tab => isNotebook(tab.path)) as tab (tab.path)}<div class="notebook-scroll" style:display={showNotebookPreview && active === tab.path ? 'block' : 'none'}><NotebookView bind:this={notebookViews[tab.path]} path={tab.path} content={tab.content} visible={showNotebookPreview && active === tab.path} onChange={(json) => notebookChanged(tab.path, json)} onTerminal={runInTerminal}/></div>{/each}{#if !active && !pending && !settingsOpen && !accountOpen && !usageOpen}<div class="editor-empty"><img class="welcome-mark" src="./icon.png" alt="Kelus icon"/><h2>Kelus</h2><p>{t('editorEmpty.subtitle')}</p><div class="welcome-actions"><button onclick={openWorkspace}>{t('common.openFolder')}</button><button onclick={() => agentVisible = true}>{t('editorEmpty.openAgentRoom')}</button></div></div>{/if}{#if settingsOpen && settings}<SettingsView {settings} onSaved={(value) => { settings = value; setTheme(value.theme); setLocale(value.locale); }} onClose={closeSettings} onPreview={setTheme} onPreviewLocale={setLocale}/>{/if}{#if usageOpen}<UsageView {settings} onSettings={(value) => settings = value} onOpenSettings={() => { usageOpen = false; openSettings(); }} onClose={() => usageOpen = false} onError={report}/>{/if}{#if accountOpen}<AccountView {root} onError={report} onClose={() => accountOpen = false}/>{/if}</div>
         <div class="bottom-panel" class:collapsed={!bottomVisible}><div class="bottom-tabs"><button class:active={bottom === 'terminal'} onclick={() => bottom = 'terminal'}>{t('bottomPanel.terminal')}</button><button class:active={bottom === 'tests'} onclick={() => bottom = 'tests'}>{t('bottomPanel.testOutput')}</button><button class:active={bottom === 'logs'} onclick={() => bottom = 'logs'}>{t('bottomPanel.logs')}</button><div class="panel-tools"><button aria-label={t('bottomPanel.hide')} title={t('bottomPanel.hide')} onclick={() => bottomVisible = false}>×</button></div></div><div class="bottom-content"><div class="terminal-section" style:display={bottom === 'terminal' ? 'flex' : 'none'}><div bind:this={terminalHost} class="terminal-host"></div><div class="terminal-command"><span>›</span><input bind:value={terminalCommand} placeholder={t('bottomPanel.terminalPlaceholder')} onkeydown={(event) => { if (event.key === 'Enter') sendTerminalCommand(); }}/><button onclick={sendTerminalCommand}>{t('common.run')}</button></div></div>{#if bottom === 'tests'}<pre>{events.filter(e => e.agent === 'Tester').map(e => JSON.stringify(e.evidence || e.message, null, 2)).join('\n\n') || t('bottomPanel.noTestRun')}</pre>{/if}{#if bottom === 'logs'}<pre>{events.filter(e => e.type === 'log' || e.type === 'error').map(e => e.message).join('\n') || t('bottomPanel.noLogs')}</pre>{/if}</div></div>
     </main>
     {#if agentVisible}
       <aside class="agent-panel">
         <div class="agent-heading"><strong>{t('agentPanel.title')}</strong><div class="agent-modes" role="tablist"><button role="tab" aria-selected={agentMode === 'code'} class:chosen={agentMode === 'code'} onclick={() => agentMode = 'code'}>{t('agentPanel.modeCode')}</button><button role="tab" aria-selected={agentMode === 'computer'} class:chosen={agentMode === 'computer'} onclick={() => agentMode = 'computer'}>{t('agentPanel.modeComputer')}</button></div><div><span class="live-dot" class:busy={running}></span><button aria-label={t('agentPanel.close')} title={t('agentPanel.close')} onclick={() => agentVisible = false}>×</button></div></div>
         {#if agentMode === 'computer' && agentConfig}
-        <ComputerAgent config={agentConfig} profiles={settings?.profiles ?? []} activeProfileId={settings?.activeProfileId ?? 'mock'} onChange={saveAgentConfig}/>
+        <ComputerAgent config={agentConfig} profiles={settings?.profiles ?? []} activeProfileId={settings?.activeProfileId ?? 'mock'} onChange={saveAgentConfig} onProfilesChanged={async () => { settings = await window.kelus.getSettings(); agentConfig = await window.kelus.agentConfig(); }}/>
         {:else}
         <div class="agent-scroll">
-          {#if events.length === 0}<div class="agent-empty"><div class="agent-empty-icon">◇</div><h3>{t('agentPanel.emptyTitle')}</h3><p>{t('agentPanel.emptyBody')}</p></div>{/if}
+          {#if events.length === 0}<div class="agent-empty"><div class="agent-empty-icon" aria-hidden="true"></div><h3>{t('agentPanel.emptyTitle')}</h3><p>{t('agentPanel.emptyBody')}</p></div>{/if}
           {#if pending}<div class="approval-card"><div class="eyebrow">{t('agentPanel.approvalRequired')}</div><h3>{pending.path}</h3><p>{pending.test_command ? t('agentPanel.approvalDescriptionWithCommand', { command: pending.test_command }) : t('agentPanel.approvalDescription')}</p><div class="approval-actions"><button onclick={() => decide(false)}>{t('common.decline')}</button><button class="approve" onclick={() => decide(true)}>{t('common.approve')}</button></div></div>{/if}
           {#each events.filter(e => e.type === 'agent') as event}<div class="agent-event" class:debate={event.debate}><div class="agent-event-head"><span class="agent-avatar">{event.agent?.slice(0, 1)}</span><strong>{event.agent}</strong>{#if event.model}<span class="model-tag" title={event.model}>{event.model}</span>{/if}{#if event.kind}<span class="kind-tag {event.kind}">{kindLabel(event.kind)}</span>{/if}<span class="status" class:good={event.status === 'approved' || event.status === 'passed' || event.status === 'complete'} class:bad={event.status === 'failed' || event.status === 'rejected'}>{event.status}</span></div><p class:debate-text={event.debate}>{event.message}</p>{#if event.evidence}<details><summary>{t('agentPanel.evidenceSummary')}</summary><pre>{JSON.stringify(event.evidence, null, 2)}</pre></details>{/if}</div>{/each}
         </div>
@@ -314,5 +360,5 @@
       </aside>
     {/if}
   </div>
-  <footer class="statusbar"><span class="status-brand">◇</span><span>{error || (root ? root : t('statusbar.noFolderOpen'))}</span><span class="status-right">{active ? `${language(active)}  •  UTF-8` : ''}</span><span>{running ? `● ${t('statusbar.agentsWorking')}` : 'Kelus'}</span></footer>
+  <footer class="statusbar"><span class="status-brand">◇</span><span>{error || statusNote || (root ? root : t('statusbar.noFolderOpen'))}</span>{#if live.role === 'host' || live.role === 'guest'}<span class="status-live">● {t('sidebar.liveShare')} · {live.participants.length}</span>{/if}<span class="status-right">{active ? `${language(active)}  •  UTF-8` : ''}</span><span>{running ? `● ${t('statusbar.agentsWorking')}` : 'Kelus'}</span></footer>
 </div>

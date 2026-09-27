@@ -139,7 +139,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .live-dot.busy { background: var(--accent); box-shadow: 0 0 7px var(--accent); }
 .agent-scroll { flex: 1; min-height: 0; overflow: auto; padding: 11px 10px; }
 .agent-empty { text-align: center; color: var(--text-muted); padding: 64px 13px 0; }
-.agent-empty-icon { font-size: 37px; color: var(--text-faint); }
+.agent-empty-icon { width: 40px; height: 40px; margin: 0 auto; background: var(--accent); -webkit-mask: url('./agent-mark.svg') center / contain no-repeat; mask: url('./agent-mark.svg') center / contain no-repeat; }
 .agent-empty h3 { color: var(--text-heading); font-size: 13px; font-weight: 600; margin: 10px 0 6px; }
 .agent-empty p { font-size: 11px; line-height: 1.5; }
 .agent-event { padding: 9px 4px 12px; border-bottom: 1px solid var(--border); }
@@ -358,3 +358,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .github-code-row { display: flex; align-items: center; gap: 10px; }
 .github-code-row code { font-size: 20px; letter-spacing: 0.12em; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 5px; color: var(--text-heading); }
 .github-code a, .cloud-project-actions a { color: var(--accent); }
+.activity-bar button.live-on svg { stroke: var(--status-good); }
+.status-live { color: var(--status-good); }
+.live-tab::after { content: ''; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--status-good); flex: 0 0 auto; }
+.price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.price-row label { display: flex; flex-direction: column; gap: 4px; }
+.activity-bottom button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.github-code-row .source-button { width: auto; flex: 0 0 auto; margin-top: 0; padding: 5px 14px; }

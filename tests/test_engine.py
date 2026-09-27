@@ -69,6 +69,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(summary['test_exit_code'], 0)
         self.assertEqual(summary['model_calls'], 2)
         self.assertIsNone(summary['input_tokens'])
+        self.assertEqual(summary['usage'], {'mock': {'calls': 2, 'input_tokens': 0, 'output_tokens': 0}})
         with connect() as db:
             self.assertEqual(db.execute('SELECT final_outcome FROM runs').fetchone()[0], 'verified')
         destination = self.data / 'runs.json'

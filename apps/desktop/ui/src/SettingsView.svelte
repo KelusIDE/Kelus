@@ -31,9 +31,10 @@
     { id: 'monokai', label: 'Monokai', a: '#272822', b: '#a6e22e' },
     { id: 'high-contrast', label: 'High Contrast', a: '#000000', b: '#3ff23f' }
   ];
+  const priceValue = (value: unknown) => value === '' || value == null || !Number.isFinite(Number(value)) ? null : Math.max(0, Number(value));
   function addProfile() {
     const id = crypto.randomUUID();
-    const draft: Draft = { id, name: 'New provider', provider: 'openai-compatible' as Provider, modelUrl: '', modelName: '', hasApiKey: false, apiKey: '', clearApiKey: false };
+    const draft: Draft = { id, name: 'New provider', provider: 'openai-compatible' as Provider, modelUrl: '', modelName: '', inputPrice: null, outputPrice: null, hasApiKey: false, apiKey: '', clearApiKey: false };
     profiles = [...profiles, draft];
     editingId = id;
   }
@@ -50,6 +51,7 @@
         theme, locale, activeProfileId,
         profiles: profiles.map((p): ProviderProfileInput => ({
           id: p.id, name: p.name, provider: p.provider, modelUrl: p.modelUrl, modelName: p.modelName,
+          inputPrice: priceValue(p.inputPrice), outputPrice: priceValue(p.outputPrice),
           apiKey: p.apiKey.trim() || undefined, clearApiKey: p.clearApiKey
         }))
       };
@@ -103,6 +105,10 @@
                 <label for={`key-${profile.id}`}>{t('settings.apiKeyLabel')}</label>
                 <input id={`key-${profile.id}`} type="password" bind:value={profile.apiKey} placeholder={profile.hasApiKey ? t('settings.apiKeySaved') : t('settings.apiKeyEnter')} autocomplete="new-password" spellcheck="false"/>
                 {#if profile.hasApiKey}<label class="check-row"><input type="checkbox" bind:checked={profile.clearApiKey}/> {t('settings.removeApiKey')}</label>{/if}
+                <div class="price-row">
+                  <label>{t('settings.inputPrice')}<input type="number" min="0" step="0.01" bind:value={profile.inputPrice} placeholder="2.50"/></label>
+                  <label>{t('settings.outputPrice')}<input type="number" min="0" step="0.01" bind:value={profile.outputPrice} placeholder="10.00"/></label>
+                </div>
               </div>
             {/if}
           </div>

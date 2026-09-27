@@ -1,9 +1,10 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { desktopCapturer, globalShortcut, screen, shell, systemPreferences, type WebContents } from 'electron';
-import { describe, helperCommand, parseAction, systemPrompt, userPrompt, type ComputerAction, type Shot } from './computerCore';
+import { coordinateStyleFor, describe, helperCommand, parseAction, systemPrompt, userPrompt, type ComputerAction, type Shot } from './computerCore';
 import { agentConfig, visionModel } from './settings';
 import { defaultPython, enginePath } from './paths';
+import { recordComputerRun } from './usage';
 
 const STOP_HOTKEY = 'CommandOrControl+Shift+Escape';
 const DRY_RUN = process.env.KELUS_COMPUTER_DRY_RUN === '1';
@@ -40,14 +41,17 @@ async function capture(): Promise<{ shot: Shot; jpeg: string; preview: string }>
   };
 }
 
-async function ask(model: { url: string; key: string; model: string }, task: string, history: string[], jpeg: string, shot: Shot, signal: AbortSignal): Promise<string> {
+type Tokens = { calls: number; input_tokens: number; output_tokens: number };
+async function ask(model: { url: string; key: string; model: string }, task: string, history: string[], jpeg: string, shot: Shot, signal: AbortSignal, tokens: Tokens): Promise<string> {
   const response = await fetch(model.url, {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${model.key}` },
     body: JSON.stringify({
       model: model.model, temperature: 0, max_tokens: 500,
+      // Local (Ollama) models: skip slow step-by-step "thinking"; one click needs no essay. Hosted APIs reject the field.
+      ...(/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(model.url) ? { reasoning_effort: 'none' } : {}),
       messages: [
-        { role: 'system', content: systemPrompt(shot.width, shot.height, process.platform) },
+        { role: 'system', content: systemPrompt(shot.width, shot.height, process.platform, coordinateStyleFor(model.model)) },
         { role: 'user', content: [
           { type: 'text', text: userPrompt(task, history) },
           { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpeg}` } }
@@ -56,7 +60,10 @@ async function ask(model: { url: string; key: string; model: string }, task: str
     })
   });
   if (!response.ok) throw new Error(`Vision model error ${response.status}: ${(await response.text()).slice(0, 300)}`);
-  const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+  const data = await response.json() as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+  tokens.calls++;
+  tokens.input_tokens += data.usage?.prompt_tokens ?? 0;
+  tokens.output_tokens += data.usage?.completion_tokens ?? 0;
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error('Vision model returned an empty reply');
   return content;
@@ -115,6 +122,9 @@ export async function startComputer(web: WebContents, task: string): Promise<voi
   (async () => {
     const history: string[] = [];
     let finished = false;
+    let outcome = 'stopped';
+    const startedAt = new Date();
+    const tokens: Tokens = { calls: 0, input_tokens: 0, output_tokens: 0 };
     try {
       for (let step = 1; step <= config.maxSteps && !run.abort.signal.aborted; step++) {
         const cursor = screen.getCursorScreenPoint();
@@ -122,7 +132,7 @@ export async function startComputer(web: WebContents, task: string): Promise<voi
         const { shot, jpeg, preview } = await capture();
         send({ type: 'screenshot', step, preview });
         let action: ComputerAction;
-        try { action = parseAction(await ask(model, task, history, jpeg, shot, run.abort.signal), shot); }
+        try { action = parseAction(await ask(model, task, history, jpeg, shot, run.abort.signal, tokens), shot, coordinateStyleFor(model.model)); }
         catch (error) {
           if (run.abort.signal.aborted) break;
           history.push(`${step}. (invalid reply: ${String((error as Error).message).slice(0, 120)})`);
@@ -131,8 +141,8 @@ export async function startComputer(web: WebContents, task: string): Promise<voi
         }
         const description = describe(action);
         send({ type: 'step', step, thought: action.thought, description, action });
-        if (action.action === 'done') { finished = true; send({ type: 'done', summary: action.summary }); break; }
-        if (action.action === 'fail') { finished = true; send({ type: 'failed', summary: action.summary }); break; }
+        if (action.action === 'done') { finished = true; outcome = 'done'; send({ type: 'done', summary: action.summary }); break; }
+        if (action.action === 'fail') { finished = true; outcome = 'failed'; send({ type: 'failed', summary: action.summary }); break; }
         if (config.confirmEachAction && action.action !== 'wait') {
           send({ type: 'approval', step, description, thought: action.thought });
           const approved = await new Promise<boolean>(resolve => { run.decide = resolve; });
@@ -145,12 +155,13 @@ export async function startComputer(web: WebContents, task: string): Promise<voi
         history.push(`${step}. ${description}`);
         await sleep(700, run.abort.signal);
       }
-      if (!run.abort.signal.aborted && !finished) send({ type: 'failed', summary: `Reached the ${config.maxSteps}-step limit` });
+      if (!run.abort.signal.aborted && !finished) { outcome = 'failed'; send({ type: 'failed', summary: `Reached the ${config.maxSteps}-step limit` }); }
     } catch (error) {
-      if (!run.abort.signal.aborted) send({ type: 'error', message: (error as Error).message });
+      if (!run.abort.signal.aborted) { outcome = 'error'; send({ type: 'error', message: (error as Error).message }); }
     } finally {
       globalShortcut.unregister(STOP_HOTKEY);
       helper.stop();
+      if (tokens.calls) recordComputerRun(task, outcome, startedAt, { [model.model]: tokens }).catch(() => undefined);
       current = null;
       send({ type: 'status', running: false });
     }

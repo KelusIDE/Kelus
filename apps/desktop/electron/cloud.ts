@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { app, dialog } from 'electron';
-import { firebaseConfig } from './firebaseConfig';
+import { firestoreBase, firestoreFetch } from './firestore';
 import { idToken } from './account';
 import { githubApi, githubSession } from './github';
 import { restore, snapshotAndPush, type SyncTarget } from './syncGit';
@@ -17,7 +17,6 @@ const syncDir = () => path.join(app.getPath('userData'), 'sync');
 const registryFile = () => path.join(syncDir(), 'registry.json');
 /** Private git dir per local folder (so two copies of one project never share an index). */
 const gitDirFor = (root: string) => path.join(syncDir(), `${createHash('sha1').update(root).digest('hex').slice(0, 20)}.git`);
-function firestoreBase(): string { return `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`; }
 
 async function readRegistry(): Promise<Record<string, string>> {
   try { return JSON.parse(await fs.readFile(registryFile(), 'utf8')) as Record<string, string>; } catch { return {}; }
@@ -27,13 +26,6 @@ async function writeRegistry(registry: Record<string, string>): Promise<void> {
   await fs.writeFile(registryFile(), JSON.stringify(registry, null, 2));
 }
 
-async function firestoreFetch(url: string, token: string, init: RequestInit = {}): Promise<Record<string, unknown>> {
-  const response = await fetch(url, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...init.headers } });
-  const text = await response.text();
-  const data = text ? (JSON.parse(text) as Record<string, unknown> & { error?: { message?: string } }) : {};
-  if (!response.ok) throw new Error(data.error?.message || `Firestore request failed (${response.status})`);
-  return data;
-}
 function fromFirestoreDocument(doc: Record<string, unknown>): CloudProject {
   const fields = (doc.fields || {}) as Record<string, Record<string, string>>;
   const id = String(doc.name || '').split('/').pop() || '';

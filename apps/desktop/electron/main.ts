@@ -12,6 +12,9 @@ import * as cloud from './cloud';
 import * as kernel from './kernel';
 import * as computer from './computer';
 import * as githubSync from './github';
+import * as liveshare from './liveshare';
+import * as usage from './usage';
+import * as ollama from './ollama';
 
 function requireRoot(): string {
   const root = workspace.workspaceRoot();
@@ -64,6 +67,11 @@ app.whenReady().then(async () => {
     if (opened) kernel.stopAll();
     return opened;
   });
+  ipcMain.handle('ollama:status', () => ollama.ollamaStatus());
+  ipcMain.handle('ollama:setup', (event) => ollama.setupLocalVision(event.sender));
+  ipcMain.handle('usage:stats', (_e, range: string) => usage.usageStats(range === '7d' || range === '30d' ? range : 'all'));
+  ipcMain.handle('settings:activeProfile', (_e, id: string) => settings.setActiveProfile(String(id)));
+  ipcMain.handle('settings:budget', (_e, amount: number) => settings.setMonthlyBudget(Number(amount)));
   ipcMain.handle('agent:config', () => settings.agentConfig());
   ipcMain.handle('agent:config:update', (_e, value: unknown) => settings.updateAgentConfig(value));
   ipcMain.handle('computer:permissions', () => computer.computerPermissions());
@@ -108,6 +116,13 @@ app.whenReady().then(async () => {
   ipcMain.handle('github:connect', (event) => githubSync.startGithubConnect(event.sender));
   ipcMain.handle('github:cancelConnect', () => githubSync.cancelGithubConnect());
   ipcMain.handle('github:disconnect', () => githubSync.disconnectGithub());
+  ipcMain.handle('live:start', (_e, project: string) => liveshare.startSession(String(project)));
+  ipcMain.handle('live:end', (_e, code: string) => liveshare.endSession(code));
+  ipcMain.handle('live:requests', (_e, code: string) => liveshare.listRequests(code));
+  ipcMain.handle('live:answer', (_e, code: string, uid: string, answer: string | null) => liveshare.answerRequest(code, uid, answer));
+  ipcMain.handle('live:join', (_e, code: string, offer: string) => liveshare.requestJoin(code, offer));
+  ipcMain.handle('live:poll', (_e, code: string) => liveshare.pollAnswer(code));
+  ipcMain.handle('live:leave', (_e, code: string) => liveshare.leaveSession(code));
   ipcMain.handle('cloud:list', () => cloud.listProjects());
   ipcMain.handle('cloud:sync', (event) => cloud.syncProject(requireRoot(), progress => event.sender.send('sync:progress', progress)));
   ipcMain.handle('cloud:download', (_e, id: string) => cloud.downloadProject(id));

@@ -14,6 +14,9 @@ export type ProviderProfile = {
   provider: Provider;
   modelUrl: string;
   modelName: string;
+  /** Optional USD prices per million tokens, used only to estimate cost in the usage panel. */
+  inputPrice?: number;
+  outputPrice?: number;
   encryptedApiKey?: string;
 };
 export type ProfileInput = {
@@ -22,6 +25,8 @@ export type ProfileInput = {
   provider: Provider;
   modelUrl: string;
   modelName: string;
+  inputPrice?: number | null;
+  outputPrice?: number | null;
   apiKey?: string;
   clearApiKey?: boolean;
 };
@@ -36,6 +41,8 @@ type SettingsData = {
   activeProfileId: string;
   profiles: ProviderProfile[];
   agent: AgentConfig;
+  /** Monthly spending alert in USD; 0 means off. */
+  monthlyBudget: number;
 };
 export type SettingsUpdate = {
   theme: Theme;
@@ -51,7 +58,7 @@ const sessionApiKeys = new Map<string, string>();
 function defaultData(): SettingsData {
   return {
     theme: 'warm', locale: 'en', activeProfileId: 'mock', profiles: [{ ...MOCK_PROFILE }],
-    agent: normalizeAgent(undefined)
+    agent: normalizeAgent(undefined), monthlyBudget: 0
   };
 }
 const clamp = (value: unknown, min: number, max: number, fallback: number) =>
@@ -83,6 +90,7 @@ function secureStorageAvailable(): boolean {
   if (process.platform === 'linux' && typeof backend !== 'function') return false;
   return typeof backend !== 'function' || backend() !== 'basic_text';
 }
+const price = (value: unknown): number | undefined => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
 function normalizeProfile(raw: unknown): ProviderProfile {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<ProviderProfile>;
   return {
@@ -91,6 +99,8 @@ function normalizeProfile(raw: unknown): ProviderProfile {
     provider: value.provider === 'openai-compatible' ? 'openai-compatible' : 'mock',
     modelUrl: typeof value.modelUrl === 'string' ? value.modelUrl : '',
     modelName: typeof value.modelName === 'string' ? value.modelName : '',
+    inputPrice: price(value.inputPrice),
+    outputPrice: price(value.outputPrice),
     encryptedApiKey: typeof value.encryptedApiKey === 'string' ? value.encryptedApiKey : undefined
   };
 }
@@ -103,11 +113,12 @@ async function load(): Promise<SettingsData> {
     const theme = themes.includes(stored.theme as Theme) ? (stored.theme as Theme) : 'warm';
     const locale = locales.includes(stored.locale as Locale) ? (stored.locale as Locale) : 'en';
     const agent = normalizeAgent(stored.agent);
+    const budget = price(stored.monthlyBudget) ?? 0;
     if (Array.isArray(stored.profiles) && stored.profiles.length) {
       const profiles = stored.profiles.map(normalizeProfile);
       const activeProfileId = typeof stored.activeProfileId === 'string' && profiles.some(p => p.id === stored.activeProfileId)
         ? stored.activeProfileId : profiles[0].id;
-      cached = { theme, locale, activeProfileId, profiles, agent };
+      cached = { theme, locale, activeProfileId, profiles, agent, monthlyBudget: budget };
     } else if (stored.provider) {
       // Migrate the pre-profile single-provider shape into a profile.
       const migrated: ProviderProfile = {
@@ -120,7 +131,7 @@ async function load(): Promise<SettingsData> {
       };
       cached = {
         theme, locale, activeProfileId: migrated.id, profiles: migrated.provider === 'mock' ? [migrated] : [{ ...MOCK_PROFILE }, migrated],
-        agent
+        agent, monthlyBudget: budget
       };
     } else {
       cached = defaultData();
@@ -146,8 +157,10 @@ export async function publicSettings() {
     activeProfileId: data.activeProfileId,
     profiles: data.profiles.map(p => ({
       id: p.id, name: p.name, provider: p.provider, modelUrl: p.modelUrl, modelName: p.modelName,
+      inputPrice: p.inputPrice ?? null, outputPrice: p.outputPrice ?? null,
       hasApiKey: Boolean(apiKeyFor(p))
     })),
+    monthlyBudget: data.monthlyBudget,
     keyStorage: secureStorageAvailable() ? 'encrypted' : 'session-only'
   };
 }
@@ -176,6 +189,7 @@ export async function updateSettings(input: SettingsUpdate) {
       provider: raw.provider,
       modelUrl,
       modelName: raw.modelName.trim(),
+      inputPrice: price(raw.inputPrice), outputPrice: price(raw.outputPrice),
       encryptedApiKey: existing?.encryptedApiKey
     };
     if (raw.clearApiKey) { sessionApiKeys.delete(raw.id); profile.encryptedApiKey = undefined; }
@@ -202,6 +216,23 @@ async function persist(data: SettingsData): Promise<void> {
   await fs.rename(temporary, location());
 }
 
+export async function setActiveProfile(id: string) {
+  const data = await load();
+  if (!data.profiles.some(p => p.id === id)) throw new Error('Unknown provider profile');
+  data.activeProfileId = id;
+  await persist(data);
+  return publicSettings();
+}
+export async function setMonthlyBudget(amount: number) {
+  const data = await load();
+  data.monthlyBudget = price(amount) ?? 0;
+  await persist(data);
+  return publicSettings();
+}
+export async function pricing(): Promise<{ profiles: { name: string; modelName: string; inputPrice?: number; outputPrice?: number }[]; monthlyBudget: number }> {
+  const data = await load();
+  return { profiles: data.profiles.map(p => ({ name: p.name, modelName: p.modelName, inputPrice: p.inputPrice, outputPrice: p.outputPrice })), monthlyBudget: data.monthlyBudget };
+}
 export async function agentConfig(): Promise<AgentConfig> { return (await load()).agent; }
 export async function updateAgentConfig(input: unknown): Promise<AgentConfig> {
   const data = await load();
@@ -218,10 +249,27 @@ export async function updateAgentConfig(input: unknown): Promise<AgentConfig> {
   return next;
 }
 type SeatConfig = { name: string; provider: Provider; url?: string; key?: string; model?: string };
+/** Local servers such as Ollama ignore the API key, so one is not required for localhost URLs. */
+function isLocalUrl(url: string): boolean {
+  try { return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname); } catch { return false; }
+}
+function keyFor(profile: ProviderProfile): string | null {
+  return apiKeyFor(profile) || (isLocalUrl(profile.modelUrl) ? 'local' : null);
+}
+export async function useLocalVisionModel(model: string, url: string): Promise<void> {
+  const data = await load();
+  let profile = data.profiles.find(p => p.provider === 'openai-compatible' && isLocalUrl(p.modelUrl) && p.modelName === model);
+  if (!profile) {
+    profile = { id: `local-${model.replace(/[^a-z0-9]+/gi, '-')}`, name: `${model} (free, on this Mac)`, provider: 'openai-compatible', modelUrl: url, modelName: model, inputPrice: 0, outputPrice: 0 };
+    data.profiles.push(profile);
+  }
+  data.agent.computer.profileId = profile.id;
+  await persist(data);
+}
 function seatFor(data: SettingsData, id: string): SeatConfig {
   const profile = data.profiles.find(p => p.id === id) ?? data.profiles.find(p => p.id === data.activeProfileId) ?? data.profiles[0];
   if (profile.provider === 'mock') return { name: profile.name, provider: 'mock' };
-  const key = apiKeyFor(profile);
+  const key = keyFor(profile);
   if (!profile.modelUrl || !profile.modelName || !key) {
     throw new Error(`Set the model URL, model name, and API key for the "${profile.name}" provider profile in Settings first`);
   }
@@ -257,7 +305,7 @@ export async function modelEnvironment(): Promise<Record<string, string>> {
   const data = await load();
   const profile = data.profiles.find(p => p.id === data.activeProfileId) ?? data.profiles[0];
   if (profile.provider === 'mock') return {};
-  const key = apiKeyFor(profile);
+  const key = keyFor(profile);
   if (!profile.modelUrl || !profile.modelName || !key) {
     throw new Error(`Set the model URL, model name, and API key for the "${profile.name}" provider profile in Settings first`);
   }

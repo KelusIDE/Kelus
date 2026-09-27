@@ -49,10 +49,27 @@ contextBridge.exposeInMainWorld('kelus', {
     ipcRenderer.on('github:connect', listener);
     return () => ipcRenderer.removeListener('github:connect', listener);
   },
+  liveStart: (project: string) => ipcRenderer.invoke('live:start', project),
+  liveEnd: (code: string) => ipcRenderer.invoke('live:end', code),
+  liveRequests: (code: string) => ipcRenderer.invoke('live:requests', code),
+  liveAnswer: (code: string, uid: string, answer: string | null) => ipcRenderer.invoke('live:answer', code, uid, answer),
+  liveJoin: (code: string, offer: string) => ipcRenderer.invoke('live:join', code, offer),
+  livePoll: (code: string) => ipcRenderer.invoke('live:poll', code),
+  liveLeave: (code: string) => ipcRenderer.invoke('live:leave', code),
   cloudList: () => ipcRenderer.invoke('cloud:list'),
   cloudSync: () => ipcRenderer.invoke('cloud:sync'),
   cloudDownload: (projectId: string) => ipcRenderer.invoke('cloud:download', projectId),
   cloudDelete: (projectId: string) => ipcRenderer.invoke('cloud:delete', projectId),
+  ollamaStatus: () => ipcRenderer.invoke('ollama:status'),
+  ollamaSetup: () => ipcRenderer.invoke('ollama:setup'),
+  onOllamaProgress: (callback: (event: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: unknown) => callback(event);
+    ipcRenderer.on('ollama:progress', listener);
+    return () => ipcRenderer.removeListener('ollama:progress', listener);
+  },
+  usageStats: (range: string) => ipcRenderer.invoke('usage:stats', range),
+  setActiveProfile: (id: string) => ipcRenderer.invoke('settings:activeProfile', id),
+  setMonthlyBudget: (amount: number) => ipcRenderer.invoke('settings:budget', amount),
   agentConfig: () => ipcRenderer.invoke('agent:config'),
   updateAgentConfig: (value: unknown) => ipcRenderer.invoke('agent:config:update', value),
   computerPermissions: () => ipcRenderer.invoke('computer:permissions'),

@@ -169,7 +169,7 @@ async function storeSession(data: Record<string, unknown>, fallbackName: string)
 /** Returns a live ID token for Firestore/Storage REST calls, refreshing it if needed. Throws if signed out. */
 export async function idToken(): Promise<{ token: string; uid: string }> {
   const account = await loadStored();
-  if (!account) throw new Error('Sign in to Kelus to use cloud sync');
+  if (!account) throw new Error('Sign in to Kelus first (Account panel, bottom left).');
   if (session && session.expiresAt > Date.now()) return { token: session.idToken, uid: account.uid };
   let refreshToken: string;
   try {

@@ -1,14 +1,30 @@
 rules_version = '2';
 
-// Every document lives under a user's own uid. A signed-in user can only read or write
-// their own profile and their own synced-project records; nothing here is public.
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Private data: a signed-in user can only read or write their own profile and synced-project list.
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
 
       match /projects/{projectId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Live Share rendezvous. Only WebRTC connection offers/answers pass through here; files and
+    // edits flow peer-to-peer. Anyone signed in who knows the invite code can see that the session
+    // exists and ask to join; only the host sees join requests and answers them.
+    match /sessions/{code} {
+      function isHost() {
+        return request.auth != null && request.auth.uid == get(/databases/$(database)/documents/sessions/$(code)).data.hostUid;
+      }
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+
+      match /peers/{guestUid} {
+        allow read, delete: if request.auth != null && (request.auth.uid == guestUid || isHost());
+        allow create, update: if request.auth != null && (request.auth.uid == guestUid || isHost());
       }
     }
   }

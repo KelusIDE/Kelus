@@ -55,6 +55,16 @@ Open **Source Control** from the activity bar after opening a project folder. In
 
 GitHub sign-in uses the official GitHub CLI (`gh`). Install it if the Source Control view prompts you, then choose **Sign in with GitHub**. Kelus runs `gh auth login` in the integrated terminal and configures Git authentication with `gh auth setup-git`; choose **Check connection** after sign-in. Kelus does not store a GitHub access token itself.
 
+## Live Share
+
+Work on the same project with other people in real time. Everyone needs a Kelus account (Account panel).
+
+1. **Host:** open the Live Share icon in the activity bar and click **Share this project**. Send the invite code (like `5XLX-CRRM`) to your teammates.
+2. **Guest:** open Live Share, enter the code, click **Join**. The host sees a request and clicks **Allow**.
+3. Guests browse the host's files, open them, and edit together with the host; everyone sees each other's cursors and names. **Save** (⌘S) from a guest writes the file on the host's computer.
+
+Files and edits travel directly between computers over WebRTC (Firestore only carries the connection handshake), and edits merge with Yjs so simultaneous typing never conflicts. Allowed guests can read and edit any file in the shared folder, so only share with people you trust. Some strict networks block direct peer-to-peer connections; Kelus then says it could not connect.
+
 ## Kelus Account and cloud sync
 
 Kelus syncs a project to a **private repo on your own GitHub account**, so nobody needs a storage bill or a card. Account identity and the project list live on Firebase (project `kelus-ide`); the files live on GitHub.

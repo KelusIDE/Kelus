@@ -2,12 +2,12 @@ export type Entry = { name: string; path: string; directory: boolean; git?: stri
 export type Theme = 'warm' | 'dark' | 'light' | 'midnight' | 'dracula' | 'nord' | 'solarized' | 'monokai' | 'high-contrast';
 export type Locale = 'en' | 'ko' | 'fr' | 'es' | 'de' | 'ja' | 'zh';
 export type Provider = 'mock' | 'openai-compatible';
-export type ProviderProfile = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; hasApiKey: boolean };
+export type ProviderProfile = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; inputPrice: number | null; outputPrice: number | null; hasApiKey: boolean };
 export type Settings = {
   theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfile[];
-  keyStorage: 'encrypted' | 'session-only';
+  monthlyBudget: number; keyStorage: 'encrypted' | 'session-only';
 };
-export type ProviderProfileInput = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; apiKey?: string; clearApiKey?: boolean };
+export type ProviderProfileInput = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; inputPrice?: number | null; outputPrice?: number | null; apiKey?: string; clearApiKey?: boolean };
 export type SettingsUpdate = {
   theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfileInput[];
 };
@@ -68,6 +68,13 @@ export type KelusAPI = {
   accountCancelBrowser(): Promise<void>;
   cloudList(): Promise<CloudProject[]>;
   cloudSync(): Promise<SyncResult>;
+  liveStart(project: string): Promise<{ code: string; uid: string; name: string }>;
+  liveEnd(code: string): Promise<void>;
+  liveRequests(code: string): Promise<JoinRequest[]>;
+  liveAnswer(code: string, uid: string, answer: string | null): Promise<void>;
+  liveJoin(code: string, offer: string): Promise<{ hostName: string; project: string; uid: string; name: string }>;
+  livePoll(code: string): Promise<{ answer: string | null; denied: boolean }>;
+  liveLeave(code: string): Promise<void>;
   githubAccount(): Promise<{ login: string } | null>;
   githubConnect(): Promise<{ userCode: string; verificationUri: string }>;
   githubCancelConnect(): Promise<void>;
@@ -76,6 +83,12 @@ export type KelusAPI = {
   cloudDownload(projectId: string): Promise<string | null>;
   cloudDelete(projectId: string): Promise<void>;
   onSyncProgress(callback: (progress: SyncProgress) => void): () => void;
+  ollamaStatus(): Promise<{ installed: boolean; running: boolean; hasModel: boolean; model: string }>;
+  ollamaSetup(): Promise<void>;
+  onOllamaProgress(callback: (event: { status: string; percent?: number; done?: boolean; error?: boolean }) => void): () => void;
+  usageStats(range: UsageRange): Promise<UsageStats>;
+  setActiveProfile(id: string): Promise<Settings>;
+  setMonthlyBudget(amount: number): Promise<Settings>;
   agentConfig(): Promise<AgentConfig>;
   updateAgentConfig(value: AgentConfig): Promise<AgentConfig>;
   computerPermissions(): Promise<ComputerPermissions>;
@@ -91,6 +104,15 @@ export type KelusAPI = {
   kernelRestart(notebook: string): Promise<void>;
   kernelShutdown(notebook: string): Promise<void>;
   onKernelEvent(callback: (event: KernelEvent) => void): () => void;
+};
+export type JoinRequest = { uid: string; name: string; email: string; offer: string; answered: boolean };
+export type UsageRange = '7d' | '30d' | 'all';
+export type UsageStats = {
+  totals: { runs: number; succeeded: number; failed: number; calls: number; inputTokens: number; outputTokens: number; cost: number; runtime: number };
+  monthCost: number; monthlyBudget: number;
+  days: { date: string; runs: number; tokens: number; cost: number }[];
+  models: { model: string; calls: number; input_tokens: number; output_tokens: number; cost: number | null; priced: boolean }[];
+  recent: { kind: 'agent' | 'computer'; task: string; outcome: string; startedAt: string; runtime: number | null; tokens: number; models: string[]; cost: number | null }[];
 };
 export type Interpreter = { path: string; label: string; version: string };
 export type AgentConfig = {
