@@ -1,5 +1,8 @@
-import { app, safeStorage } from 'electron';
+import { app, safeStorage, shell } from 'electron';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { firebaseConfig } from './firebaseConfig';
 
@@ -58,6 +61,8 @@ function readableAuthError(code: string | undefined): string {
     case 'WEAK_PASSWORD : Password should be at least 6 characters': case 'WEAK_PASSWORD': return 'Password must be at least 6 characters.';
     case 'INVALID_EMAIL': return 'Enter a valid email address.';
     case 'TOO_MANY_ATTEMPTS_TRY_LATER': return 'Too many attempts. Try again later.';
+    case 'CONFIGURATION_NOT_FOUND': case 'OPERATION_NOT_ALLOWED':
+      return 'Kelus sign-in is not switched on yet: enable Email/Password in Firebase Authentication for this project.';
     default: return code || 'Sign-in failed.';
   }
 }
@@ -83,6 +88,65 @@ export async function signIn(email: string, password: string): Promise<Account |
 export async function signOut(): Promise<void> {
   session = null;
   await persist(null);
+}
+
+const WEBSITE = 'https://kelus-ide.web.app';
+let pendingBrowser: { cancel: (error: Error) => void } | null = null;
+
+function resultPage(message: string): string {
+  return `<!doctype html><meta charset="utf-8"><title>Kelus</title><body style="font:15px -apple-system,sans-serif;background:#211b14;color:#e2d1b9;display:grid;place-items:center;height:100vh;margin:0"><p>${message}</p></body>`;
+}
+export function cancelBrowserSignIn(): void { pendingBrowser?.cancel(new Error('Browser sign-in was cancelled.')); }
+
+/**
+ * Google/GitHub sign-in through the Kelus website: the page signs in with Firebase's popup, then
+ * form-POSTs the refresh token to a one-time listener on 127.0.0.1. The random state (sent in the URL
+ * fragment, never to a server) stops other sites from pushing their own session into Kelus.
+ */
+export async function signInWithBrowser(provider: 'google' | 'github'): Promise<Account | null> {
+  cancelBrowserSignIn();
+  const state = randomBytes(24).toString('hex');
+  const refreshToken = await new Promise<string>((resolve, reject) => {
+    const server = http.createServer((request, response) => {
+      if (request.method !== 'POST' || request.url !== '/callback') { response.writeHead(404).end(); return; }
+      let body = '';
+      request.on('data', chunk => { body += chunk; if (body.length > 20_000) request.destroy(); });
+      request.on('end', () => {
+        const form = new URLSearchParams(body);
+        const received = Buffer.from(form.get('state') || ''), expected = Buffer.from(state);
+        const token = form.get('refresh_token') || '';
+        if (received.length !== expected.length || !timingSafeEqual(received, expected) || !token) {
+          response.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' }).end(resultPage('This sign-in link is invalid or expired. Start again from Kelus.'));
+          return;
+        }
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(resultPage('Signed in to Kelus. You can close this tab and return to the app.'));
+        finish(); resolve(token);
+      });
+    });
+    const timer = setTimeout(() => { finish(); reject(new Error('Browser sign-in timed out. Try again.')); }, 5 * 60_000);
+    const finish = () => { clearTimeout(timer); server.close(); pendingBrowser = null; };
+    pendingBrowser = { cancel: error => { finish(); reject(error); } };
+    server.on('error', error => { finish(); reject(error); });
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address() as AddressInfo;
+      const url = `${WEBSITE}/#/desktop?port=${port}&provider=${provider}&state=${state}`;
+      // End-to-end tests drive their own isolated browser instead of the user's default one.
+      if (process.env.KELUS_AUTH_URL_FILE) fs.writeFile(process.env.KELUS_AUTH_URL_FILE, url).catch(() => undefined);
+      else shell.openExternal(url);
+    });
+  });
+  const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${firebaseConfig.apiKey}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })
+  });
+  const tokens = (await response.json()) as Record<string, unknown>;
+  if (!response.ok) throw new Error('The browser sign-in could not be completed. Try again.');
+  const lookup = await identityToolkit('lookup', { idToken: tokens.id_token });
+  const user = ((lookup.users as Record<string, unknown>[] | undefined) ?? [])[0] ?? {};
+  return storeSession({
+    localId: tokens.user_id, idToken: tokens.id_token, refreshToken: tokens.refresh_token, expiresIn: tokens.expires_in,
+    email: user.email, displayName: user.displayName
+  }, '');
 }
 
 async function storeSession(data: Record<string, unknown>, fallbackName: string): Promise<Account | null> {

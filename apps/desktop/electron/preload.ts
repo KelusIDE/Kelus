@@ -38,6 +38,17 @@ contextBridge.exposeInMainWorld('kelus', {
   accountSignUp: (email: string, password: string, displayName: string) => ipcRenderer.invoke('account:signUp', email, password, displayName),
   accountSignIn: (email: string, password: string) => ipcRenderer.invoke('account:signIn', email, password),
   accountSignOut: () => ipcRenderer.invoke('account:signOut'),
+  accountSignInWithBrowser: (provider: 'google' | 'github') => ipcRenderer.invoke('account:signInWithBrowser', provider),
+  accountCancelBrowser: () => ipcRenderer.invoke('account:cancelBrowser'),
+  githubAccount: () => ipcRenderer.invoke('github:account'),
+  githubConnect: () => ipcRenderer.invoke('github:connect'),
+  githubCancelConnect: () => ipcRenderer.invoke('github:cancelConnect'),
+  githubDisconnect: () => ipcRenderer.invoke('github:disconnect'),
+  onGithubConnect: (callback: (event: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: unknown) => callback(event);
+    ipcRenderer.on('github:connect', listener);
+    return () => ipcRenderer.removeListener('github:connect', listener);
+  },
   cloudList: () => ipcRenderer.invoke('cloud:list'),
   cloudSync: () => ipcRenderer.invoke('cloud:sync'),
   cloudDownload: (projectId: string) => ipcRenderer.invoke('cloud:download', projectId),

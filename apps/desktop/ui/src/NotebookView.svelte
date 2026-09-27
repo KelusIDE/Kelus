@@ -213,7 +213,8 @@
   }
   function installMissing() {
     if (!missing) return;
-    const quoted = `'${missing.python.replace(/'/g, `'\\''`)}'`;
+    const windows = window.kelus.platform === 'win32';
+    const quoted = windows ? `& '${missing.python.replace(/'/g, "''")}'` : `'${missing.python.replace(/'/g, `'\\''`)}'`;
     onTerminal(`${quoted} -m pip install ${missing.packages.join(' ')}`);
   }
   const stateLabel: Record<KernelState | 'none', () => string> = {

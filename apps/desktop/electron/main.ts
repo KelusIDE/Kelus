@@ -11,6 +11,7 @@ import * as account from './account';
 import * as cloud from './cloud';
 import * as kernel from './kernel';
 import * as computer from './computer';
+import * as githubSync from './github';
 
 function requireRoot(): string {
   const root = workspace.workspaceRoot();
@@ -101,6 +102,12 @@ app.whenReady().then(async () => {
   ipcMain.handle('account:signUp', (_e, email: string, password: string, displayName: string) => account.signUp(email, password, displayName));
   ipcMain.handle('account:signIn', (_e, email: string, password: string) => account.signIn(email, password));
   ipcMain.handle('account:signOut', () => account.signOut());
+  ipcMain.handle('account:signInWithBrowser', (_e, provider: string) => account.signInWithBrowser(provider === 'github' ? 'github' : 'google'));
+  ipcMain.handle('account:cancelBrowser', () => account.cancelBrowserSignIn());
+  ipcMain.handle('github:account', () => githubSync.githubAccount());
+  ipcMain.handle('github:connect', (event) => githubSync.startGithubConnect(event.sender));
+  ipcMain.handle('github:cancelConnect', () => githubSync.cancelGithubConnect());
+  ipcMain.handle('github:disconnect', () => githubSync.disconnectGithub());
   ipcMain.handle('cloud:list', () => cloud.listProjects());
   ipcMain.handle('cloud:sync', (event) => cloud.syncProject(requireRoot(), progress => event.sender.send('sync:progress', progress)));
   ipcMain.handle('cloud:download', (_e, id: string) => cloud.downloadProject(id));

@@ -345,3 +345,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .agent-modes button { font-size: 10px !important; color: var(--text-muted); padding: 2px 8px; border-radius: 3px; }
 .agent-modes button.chosen { background: var(--bg-elevated); color: var(--text-heading); }
 .model-tag { font-size: 9px; color: var(--accent); border: 1px solid var(--border-strong); border-radius: 3px; padding: 0 4px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-providers { max-width: 340px; display: flex; flex-direction: column; gap: 8px; }
+.account-providers .provider { height: 32px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-panel); color: var(--text-heading); font-size: 12px; }
+.account-providers .provider:hover:not(:disabled) { border-color: var(--accent); }
+.account-providers svg { width: 16px; height: 16px; }
+.account-divider { max-width: 340px; display: flex; align-items: center; gap: 10px; color: var(--text-faint); font-size: 10px; margin: 4px 0; }
+.account-divider::before, .account-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.account-browser { max-width: 340px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 5px; color: var(--text-heading); font-size: 12px; }
+.account-browser button { color: var(--accent); font-size: 11px; }
+.github-code { display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
+.github-code p { margin: 0; font-size: 12px; }
+.github-code-row { display: flex; align-items: center; gap: 10px; }
+.github-code-row code { font-size: 20px; letter-spacing: 0.12em; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 5px; color: var(--text-heading); }
+.github-code a, .cloud-project-actions a { color: var(--accent); }

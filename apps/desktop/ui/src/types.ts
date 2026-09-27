@@ -3,16 +3,13 @@ export type Theme = 'warm' | 'dark' | 'light' | 'midnight' | 'dracula' | 'nord' 
 export type Locale = 'en' | 'ko' | 'fr' | 'es' | 'de' | 'ja' | 'zh';
 export type Provider = 'mock' | 'openai-compatible';
 export type ProviderProfile = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; hasApiKey: boolean };
-export type B2Settings = { bucket: string; endpoint: string; keyId: string; hasApplicationKey: boolean };
-export type B2Input = { bucket: string; endpoint: string; keyId: string; applicationKey?: string; clearApplicationKey?: boolean };
 export type Settings = {
   theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfile[];
-  b2: B2Settings; keyStorage: 'encrypted' | 'session-only';
+  keyStorage: 'encrypted' | 'session-only';
 };
 export type ProviderProfileInput = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; apiKey?: string; clearApiKey?: boolean };
 export type SettingsUpdate = {
   theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfileInput[];
-  b2: B2Input;
 };
 export type GitSnapshot = { repository: boolean; branch: string; remote: string; changes: { path: string; status: string }[] };
 export type GitHubStatus = { cliAvailable: boolean; connected: boolean; username: string };
@@ -40,9 +37,11 @@ export type RunRecord = {
 };
 export type Account = { uid: string; email: string; displayName: string } | null;
 export type CloudProject = {
-  id: string; name: string; sizeBytes: number; updatedAt: string; storagePath: string;
+  id: string; name: string; sizeBytes: number; updatedAt: string; repo: string; repoUrl: string;
 };
-export type SyncProgress = { phase: 'zipping' | 'uploading' | 'writing-record' | 'done'; percent?: number };
+export type SyncProgress = { phase: 'preparing' | 'pushing' | 'writing-record' | 'done'; percent?: number };
+export type SyncResult = CloudProject & { skipped: string[]; changed: boolean };
+export type GithubConnectEvent = { status: 'connected'; login: string } | { status: 'error'; message: string };
 export type KelusAPI = {
   platform: string;
   openWorkspace(): Promise<string | null>; getRoot(): Promise<string | null>;
@@ -65,8 +64,15 @@ export type KelusAPI = {
   accountSignUp(email: string, password: string, displayName: string): Promise<Account>;
   accountSignIn(email: string, password: string): Promise<Account>;
   accountSignOut(): Promise<void>;
+  accountSignInWithBrowser(provider: 'google' | 'github'): Promise<Account>;
+  accountCancelBrowser(): Promise<void>;
   cloudList(): Promise<CloudProject[]>;
-  cloudSync(): Promise<CloudProject>;
+  cloudSync(): Promise<SyncResult>;
+  githubAccount(): Promise<{ login: string } | null>;
+  githubConnect(): Promise<{ userCode: string; verificationUri: string }>;
+  githubCancelConnect(): Promise<void>;
+  githubDisconnect(): Promise<void>;
+  onGithubConnect(callback: (event: GithubConnectEvent) => void): () => void;
   cloudDownload(projectId: string): Promise<string | null>;
   cloudDelete(projectId: string): Promise<void>;
   onSyncProgress(callback: (progress: SyncProgress) => void): () => void;

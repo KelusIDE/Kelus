@@ -26,9 +26,13 @@ async function subdirectories(dir: string): Promise<string[]> {
   catch { return []; }
 }
 function loginShellPython(): Promise<string | null> {
-  if (process.platform === 'win32') return Promise.resolve(null);
-  shellPython ??= execFileAsync(process.env.SHELL || '/bin/zsh', ['-ilc', 'command -v python3'], { timeout: 8000 })
-    .then(({ stdout }) => stdout.trim().split('\n').at(-1)?.trim() || null).catch(() => null);
+  shellPython ??= (process.platform === 'win32'
+    // `where` lists every python.exe on PATH; skip the Microsoft Store stub that only opens the Store.
+    ? execFileAsync('where', ['python'], { timeout: 8000 }).then(({ stdout }) =>
+        stdout.split(/\r?\n/).map(line => line.trim()).find(line => line && !line.toLowerCase().includes('\\windowsapps\\')) || null)
+    : execFileAsync(process.env.SHELL || '/bin/zsh', ['-ilc', 'command -v python3'], { timeout: 8000 })
+        .then(({ stdout }) => stdout.trim().split('\n').at(-1)?.trim() || null)
+  ).catch(() => null);
   return shellPython;
 }
 async function version(python: string): Promise<string | null> {
@@ -55,7 +59,7 @@ export async function listInterpreters(notebook: string): Promise<Interpreter[]>
     for (const env of await subdirectories(path.join(prefix, 'envs'))) candidates.push({ path: binPython(env), label: `conda: ${path.basename(env)}` });
   }
   const fromShell = await loginShellPython();
-  if (fromShell) candidates.push({ path: fromShell, label: 'shell python3' });
+  if (fromShell) candidates.push({ path: fromShell, label: process.platform === 'win32' ? 'python (PATH)' : 'shell python3' });
   if (process.platform !== 'win32') for (const file of ['/opt/homebrew/bin/python3', '/usr/local/bin/python3', '/usr/bin/python3']) candidates.push({ path: file, label: file });
 
   const seen = new Set<string>();

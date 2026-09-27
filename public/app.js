@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut as firebaseSignOut, updateProfile
+  signOut as firebaseSignOut, updateProfile, signInWithPopup, GoogleAuthProvider, GithubAuthProvider
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {
   getFirestore, collection, getDocs, doc, deleteDoc, setDoc
@@ -23,6 +23,7 @@ const views = {
   home: document.getElementById('view-home'),
   login: document.getElementById('view-login'),
   signup: document.getElementById('view-signup'),
+  desktop: document.getElementById('view-desktop'),
   dashboard: document.getElementById('view-dashboard')
 };
 const navSignedOut = document.getElementById('nav-signed-out');
@@ -30,12 +31,13 @@ const navSignedIn = document.getElementById('nav-signed-in');
 let currentUser = null;
 
 function route() {
-  const hash = location.hash.replace(/^#\/?/, '') || 'home';
+  const hash = (location.hash.replace(/^#\/?/, '') || 'home').split('?')[0];
   const name = views[hash] ? hash : 'home';
   if ((name === 'login' || name === 'signup') && currentUser) { location.hash = '#/dashboard'; return; }
   if (name === 'dashboard' && !currentUser) { location.hash = '#/login'; return; }
   for (const [key, el] of Object.entries(views)) el.hidden = key !== name;
   if (name === 'dashboard') loadDashboard();
+  if (name === 'desktop') showDesktop();
 }
 window.addEventListener('hashchange', route);
 
@@ -87,6 +89,78 @@ loginForm.addEventListener('submit', async (event) => {
   finally { button.disabled = false; }
 });
 
+// --- Google / GitHub ---
+async function providerSignIn(name) {
+  const provider = name === 'github' ? new GithubAuthProvider() : new GoogleAuthProvider();
+  if (name === 'google') provider.setCustomParameters({ prompt: 'select_account' });
+  try { return (await signInWithPopup(auth, provider)).user; }
+  catch (cause) {
+    if (cause?.code === 'auth/popup-closed-by-user' || cause?.code === 'auth/cancelled-popup-request') return null;
+    if (cause?.code === 'auth/account-exists-with-different-credential') {
+      throw new Error('This email already uses another sign-in method. Sign in with that method instead.');
+    }
+    throw cause;
+  }
+}
+document.querySelectorAll('[data-provider]').forEach(button => button.addEventListener('click', async () => {
+  const context = button.dataset.context;
+  const error = document.getElementById(context === 'desktop' ? 'desktop-error' : (views.signup.hidden ? 'login-error' : 'signup-error'));
+  error.hidden = true;
+  button.disabled = true;
+  try {
+    const user = await providerSignIn(button.dataset.provider);
+    if (!user) return;
+    if (context === 'desktop') handOff(user); else location.hash = '#/dashboard';
+  } catch (cause) { showError(error, cause); }
+  finally { button.disabled = false; }
+}));
+
+// --- Desktop app sign-in: Kelus opens #/desktop?port=…&state=… and listens on 127.0.0.1 ---
+function desktopParams() {
+  const params = new URLSearchParams(location.hash.split('?')[1] || '');
+  const port = Number(params.get('port'));
+  const state = params.get('state') || '';
+  return Number.isInteger(port) && port >= 1024 && port <= 65535 && /^[a-f0-9]{48}$/.test(state) ? { port, state } : null;
+}
+let handingOff = false;
+function showDesktop() {
+  if (handingOff) return;
+  const valid = Boolean(desktopParams());
+  document.getElementById('desktop-status').textContent = valid
+    ? 'Sign in here and Kelus on your computer connects automatically.'
+    : 'Open this page from the Kelus desktop app (Account → Continue with Google or GitHub).';
+  document.getElementById('desktop-signed-in').hidden = !valid || !currentUser;
+  document.getElementById('desktop-options').hidden = !valid || Boolean(currentUser);
+  if (currentUser) document.getElementById('desktop-email').textContent = currentUser.email || currentUser.displayName || 'your account';
+}
+function handOff(user) {
+  const target = desktopParams();
+  if (!target) return;
+  handingOff = true;
+  document.getElementById('desktop-status').textContent = 'Connecting to Kelus…';
+  document.getElementById('desktop-options').hidden = true;
+  document.getElementById('desktop-signed-in').hidden = true;
+  const form = document.getElementById('desktop-handoff');
+  form.action = `http://127.0.0.1:${target.port}/callback`;
+  form.elements.state.value = target.state;
+  form.elements.refresh_token.value = user.refreshToken;
+  form.submit();
+}
+document.getElementById('desktop-continue').addEventListener('click', () => { if (currentUser) handOff(currentUser); });
+document.getElementById('desktop-switch').addEventListener('click', () => firebaseSignOut(auth));
+document.getElementById('desktop-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const error = document.getElementById('desktop-error');
+  error.hidden = true;
+  const button = event.target.querySelector('button');
+  button.disabled = true;
+  try {
+    const credential = await signInWithEmailAndPassword(auth, document.getElementById('desktop-email-input').value.trim(), document.getElementById('desktop-password').value);
+    handOff(credential.user);
+  } catch (cause) { showError(error, cause); }
+  finally { button.disabled = false; }
+});
+
 document.getElementById('sign-out').addEventListener('click', () => firebaseSignOut(auth));
 document.getElementById('sign-out-dash').addEventListener('click', () => firebaseSignOut(auth));
 
@@ -115,10 +189,12 @@ async function loadDashboard() {
       row.className = 'project-row';
       row.innerHTML = `
         <div><div class="name"></div><div class="meta"></div></div>
-        <div class="actions"><button data-action="delete" class="danger">Remove from list</button></div>`;
+        <div class="actions"><a class="button" data-action="open" target="_blank" rel="noopener" hidden>Open on GitHub</a><button data-action="delete" class="danger">Remove from list</button></div>`;
       row.querySelector('.name').textContent = data.name || docSnapshot.id;
       row.querySelector('.meta').textContent =
-        `${formatSize(data.sizeBytes)} · updated ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown'}`;
+        `${data.repo ? data.repo + ' · ' : ''}${formatSize(data.sizeBytes)} · updated ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown'}`;
+      const open = row.querySelector('[data-action="open"]');
+      if (typeof data.repoUrl === 'string' && data.repoUrl.startsWith('https://github.com/')) { open.href = data.repoUrl; open.hidden = false; }
       row.querySelector('[data-action="delete"]').addEventListener('click', () => removeFromList(docSnapshot.id, data.name || docSnapshot.id));
       list.appendChild(row);
     });
@@ -127,11 +203,9 @@ async function loadDashboard() {
     empty.textContent = `Could not load projects: ${cause.message || cause}`;
   }
 }
-// Project files live in your own Backblaze B2 bucket (see the desktop app's Settings),
-// not in anything this website has credentials for — download and actual deletion of the
-// file happen from the desktop app. This only removes the listing entry.
+// Project files live in a private repo on the user's own GitHub; this only removes the Kelus listing.
 async function removeFromList(id, name) {
-  if (!confirm(`Remove ${name} from this list? The file itself stays in your B2 bucket; delete it from the desktop app or your B2 console.`)) return;
+  if (!confirm(`Remove ${name} from your Kelus list? The GitHub repo stays; delete it on GitHub if you want it gone.`)) return;
   try {
     await deleteDoc(doc(db, 'users', currentUser.uid, 'projects', id));
     await setDoc(doc(db, 'users', currentUser.uid), { lastProjectDeletedAt: new Date().toISOString() }, { merge: true }).catch(() => {});

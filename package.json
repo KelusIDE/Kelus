@@ -11,20 +11,17 @@
     "dev": "npm start",
     "start": "npm run build && electron .",
     "build": "tsc -p apps/desktop/electron/tsconfig.json && vite build --config apps/desktop/ui/vite.config.ts && svelte-check --tsconfig apps/desktop/ui/tsconfig.json",
-    "test": "python3 -m unittest discover -s tests -v && node tests/terminal.mjs && node tests/computer.mjs",
+    "test": "python3 -m unittest discover -s tests -v && node tests/terminal.mjs && node tests/computer.mjs && node tests/sync.mjs",
     "check": "npm run build && npm test",
-    "dist": "npm run build && electron-builder --mac dmg"
+    "dist": "npm run build && electron-builder --mac dmg",
+    "dist:win": "npm run build && electron-builder --win nsis --x64"
   },
   "dependencies": {
-    "archiver": "^7.0.1",
-    "node-pty": "^1.1.0",
-    "yauzl": "^3.4.0"
+    "node-pty": "^1.1.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
-    "@types/archiver": "^7.0.0",
     "@types/node": "^24.13.6",
-    "@types/yauzl": "^3.4.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "dompurify": "^3.4.16",
@@ -52,6 +49,7 @@
       "agent-engine/**",
       "assets/icons/kelus.png",
       "assets/icons/kelus.icns",
+      "assets/icons/kelus.ico",
       "package.json",
       "!**/__pycache__/**",
       "!**/*.pyc"
@@ -81,6 +79,25 @@
     "dmg": {
       "title": "Kelus ${version}",
       "artifactName": "Kelus-${version}-${arch}.dmg"
+    },
+    "npmRebuild": false,
+    "win": {
+      "icon": "assets/icons/kelus.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Kelus",
+      "artifactName": "Kelus-Setup-${version}-${arch}.${ext}"
     }
   }
 }

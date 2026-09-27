@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { type WebContents } from 'electron';
 import { workspaceRoot } from './workspace';
 import { teamEnvironment } from './settings';
-import { enginePath } from './paths';
+import { defaultPython, enginePath } from './paths';
 
 let agent: ChildProcessWithoutNullStreams | null = null;
 export async function startAgent(task: string, testCommand: string, web: WebContents): Promise<void> {
@@ -13,7 +13,7 @@ export async function startAgent(task: string, testCommand: string, web: WebCont
   delete env.KELUS_MODEL_URL; delete env.KELUS_MODEL_NAME; delete env.KELUS_MODEL_API_KEY; delete env.KELUS_TEAM;
   Object.assign(env, await teamEnvironment());
   const backend = enginePath('main.py');
-  agent = spawn(process.env.KELUS_PYTHON || 'python3', [backend, '--workspace', root, '--task', task, '--test-command', testCommand], {
+  agent = spawn(defaultPython(), [backend, '--workspace', root, '--task', task, '--test-command', testCommand], {
     cwd: root, stdio: 'pipe', env
   });
   let buffer = '';

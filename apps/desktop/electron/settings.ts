@@ -25,8 +25,6 @@ export type ProfileInput = {
   apiKey?: string;
   clearApiKey?: boolean;
 };
-export type B2Settings = { bucket: string; endpoint: string; keyId: string; encryptedApplicationKey?: string };
-export type B2Input = { bucket: string; endpoint: string; keyId: string; applicationKey?: string; clearApplicationKey?: boolean };
 export type AgentConfig = {
   debate: boolean; coderId: string; criticIds: string[]; judgeId: string;
   panel: boolean; panelIds: string[]; panelRounds: number;
@@ -37,7 +35,6 @@ type SettingsData = {
   locale: Locale;
   activeProfileId: string;
   profiles: ProviderProfile[];
-  b2: B2Settings;
   agent: AgentConfig;
 };
 export type SettingsUpdate = {
@@ -45,18 +42,16 @@ export type SettingsUpdate = {
   locale: Locale;
   activeProfileId: string;
   profiles: ProfileInput[];
-  b2: B2Input;
 };
 
 const MOCK_PROFILE: ProviderProfile = { id: 'mock', name: 'Mock (local demo)', provider: 'mock', modelUrl: '', modelName: '' };
 
 let cached: SettingsData | null = null;
 const sessionApiKeys = new Map<string, string>();
-let sessionApplicationKey: string | null = null;
 function defaultData(): SettingsData {
   return {
     theme: 'warm', locale: 'en', activeProfileId: 'mock', profiles: [{ ...MOCK_PROFILE }],
-    b2: { bucket: '', endpoint: '', keyId: '' }, agent: normalizeAgent(undefined)
+    agent: normalizeAgent(undefined)
   };
 }
 const clamp = (value: unknown, min: number, max: number, fallback: number) =>
@@ -79,15 +74,6 @@ function normalizeAgent(raw: unknown): AgentConfig {
       confirmEachAction: computer.confirmEachAction !== false,
       maxSteps: clamp(computer.maxSteps, 1, 100, 30)
     }
-  };
-}
-function normalizeB2(raw: unknown): B2Settings {
-  const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<B2Settings>;
-  return {
-    bucket: typeof value.bucket === 'string' ? value.bucket : '',
-    endpoint: typeof value.endpoint === 'string' ? value.endpoint : '',
-    keyId: typeof value.keyId === 'string' ? value.keyId : '',
-    encryptedApplicationKey: typeof value.encryptedApplicationKey === 'string' ? value.encryptedApplicationKey : undefined
   };
 }
 function location(): string { return path.join(app.getPath('userData'), 'settings.json'); }
@@ -116,13 +102,12 @@ async function load(): Promise<SettingsData> {
     };
     const theme = themes.includes(stored.theme as Theme) ? (stored.theme as Theme) : 'warm';
     const locale = locales.includes(stored.locale as Locale) ? (stored.locale as Locale) : 'en';
-    const b2 = normalizeB2(stored.b2);
     const agent = normalizeAgent(stored.agent);
     if (Array.isArray(stored.profiles) && stored.profiles.length) {
       const profiles = stored.profiles.map(normalizeProfile);
       const activeProfileId = typeof stored.activeProfileId === 'string' && profiles.some(p => p.id === stored.activeProfileId)
         ? stored.activeProfileId : profiles[0].id;
-      cached = { theme, locale, activeProfileId, profiles, b2, agent };
+      cached = { theme, locale, activeProfileId, profiles, agent };
     } else if (stored.provider) {
       // Migrate the pre-profile single-provider shape into a profile.
       const migrated: ProviderProfile = {
@@ -135,7 +120,7 @@ async function load(): Promise<SettingsData> {
       };
       cached = {
         theme, locale, activeProfileId: migrated.id, profiles: migrated.provider === 'mock' ? [migrated] : [{ ...MOCK_PROFILE }, migrated],
-        b2, agent
+        agent
       };
     } else {
       cached = defaultData();
@@ -153,11 +138,6 @@ function apiKeyFor(profile: ProviderProfile): string | null {
   // A key encrypted by another build (dev vs packaged use different Keychain entries) reads as "not set".
   try { return safeStorage.decryptString(Buffer.from(profile.encryptedApiKey, 'base64')); } catch { return null; }
 }
-function applicationKeyFor(b2: B2Settings): string | null {
-  if (sessionApplicationKey) return sessionApplicationKey;
-  if (!b2.encryptedApplicationKey || !secureStorageAvailable()) return null;
-  try { return safeStorage.decryptString(Buffer.from(b2.encryptedApplicationKey, 'base64')); } catch { return null; }
-}
 export async function publicSettings() {
   const data = await load();
   return {
@@ -168,7 +148,6 @@ export async function publicSettings() {
       id: p.id, name: p.name, provider: p.provider, modelUrl: p.modelUrl, modelName: p.modelName,
       hasApiKey: Boolean(apiKeyFor(p))
     })),
-    b2: { bucket: data.b2.bucket, endpoint: data.b2.endpoint, keyId: data.b2.keyId, hasApplicationKey: Boolean(applicationKeyFor(data.b2)) },
     keyStorage: secureStorageAvailable() ? 'encrypted' : 'session-only'
   };
 }
@@ -209,22 +188,10 @@ export async function updateSettings(input: SettingsUpdate) {
   }
   if (!nextProfiles.some(p => p.id === 'mock')) nextProfiles.unshift({ ...MOCK_PROFILE });
   if (!nextProfiles.some(p => p.id === input.activeProfileId)) throw new Error('activeProfileId must match a profile');
-  const b2Input = input.b2;
-  const b2: B2Settings = {
-    bucket: b2Input.bucket.trim(), endpoint: b2Input.endpoint.trim(), keyId: b2Input.keyId.trim(),
-    encryptedApplicationKey: data.b2.encryptedApplicationKey
-  };
-  if (b2Input.clearApplicationKey) { sessionApplicationKey = null; b2.encryptedApplicationKey = undefined; }
-  if (b2Input.applicationKey?.trim()) {
-    const key = b2Input.applicationKey.trim();
-    sessionApplicationKey = key;
-    b2.encryptedApplicationKey = secureStorageAvailable() ? safeStorage.encryptString(key).toString('base64') : undefined;
-  }
   data.theme = input.theme;
   data.locale = input.locale;
   data.activeProfileId = input.activeProfileId;
   data.profiles = nextProfiles;
-  data.b2 = b2;
   await persist(data);
   return publicSettings();
 }
@@ -295,10 +262,4 @@ export async function modelEnvironment(): Promise<Record<string, string>> {
     throw new Error(`Set the model URL, model name, and API key for the "${profile.name}" provider profile in Settings first`);
   }
   return { KELUS_MODEL_URL: profile.modelUrl, KELUS_MODEL_NAME: profile.modelName, KELUS_MODEL_API_KEY: key };
-}
-export async function b2Credentials(): Promise<{ bucket: string; endpoint: string; keyId: string; applicationKey: string } | null> {
-  const data = await load();
-  const applicationKey = applicationKeyFor(data.b2);
-  if (!data.b2.bucket || !data.b2.endpoint || !data.b2.keyId || !applicationKey) return null;
-  return { bucket: data.b2.bucket, endpoint: data.b2.endpoint, keyId: data.b2.keyId, applicationKey };
 }

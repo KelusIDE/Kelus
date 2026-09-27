@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { desktopCapturer, globalShortcut, screen, shell, systemPreferences, type WebContents } from 'electron';
 import { describe, helperCommand, parseAction, systemPrompt, userPrompt, type ComputerAction, type Shot } from './computerCore';
 import { agentConfig, visionModel } from './settings';
-import { enginePath } from './paths';
+import { defaultPython, enginePath } from './paths';
 
 const STOP_HOTKEY = 'CommandOrControl+Shift+Escape';
 const DRY_RUN = process.env.KELUS_COMPUTER_DRY_RUN === '1';
@@ -63,7 +63,7 @@ async function ask(model: { url: string; key: string; model: string }, task: str
 }
 
 function startHelper(): { send(command: Record<string, unknown>): Promise<void>; stop(): void } {
-  const python = process.platform === 'darwin' && existsSync('/usr/bin/python3') ? '/usr/bin/python3' : (process.env.KELUS_PYTHON || 'python3');
+  const python = process.platform === 'darwin' && existsSync('/usr/bin/python3') ? '/usr/bin/python3' : defaultPython();
   const child: ChildProcessWithoutNullStreams = spawn(python, [enginePath('computer_input.py')], {
     stdio: 'pipe', env: { ...process.env, KELUS_COMPUTER_DRY_RUN: DRY_RUN ? '1' : '0' }
   });

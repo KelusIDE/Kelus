@@ -9,7 +9,7 @@ let terminal: pty.IPty | null = null;
 let terminalOwner: WebContents | null = null;
 export function startTerminal(web: WebContents, root: string | null, cols = 80, rows = 24): void {
   stopTerminal();
-  const shell = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : (process.env.SHELL || '/bin/sh');
+  const shell = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/sh');
   const cwd = root || app.getPath('home');
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) if (value !== undefined) env[key] = value;

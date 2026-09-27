@@ -57,18 +57,20 @@ GitHub sign-in uses the official GitHub CLI (`gh`). Install it if the Source Con
 
 ## Kelus Account and cloud sync
 
-Kelus can sync a project's files to the cloud so you have an off-device copy once a project grows past what you want to keep only on one machine — there's no size gate; the **Sync to Cloud** button in the **Account** view (the icon above Settings in the activity bar) is always available once you're signed in and a project is open. Account identity and the project list live on Firebase (project `kelus-ide`); the file bytes themselves go to **your own Backblaze B2 bucket** (free tier, 10 GB) rather than Firebase Storage.
+Kelus syncs a project to a **private repo on your own GitHub account**, so nobody needs a storage bill or a card. Account identity and the project list live on Firebase (project `kelus-ide`); the files live on GitHub.
 
-1. Set up Backblaze B2 once: create a free account, a **private** bucket, and an Application Key restricted to it, then enter the bucket name, S3 endpoint, Application Key ID, and Application Key in **Settings → Cloud storage**.
-2. Open the **Account** view and create a Kelus account or sign in (email + password).
-3. With a project folder open, click **Sync to Cloud**. Kelus zips the project (excluding `node_modules`, `.git`, build output, and `__pycache__`) and uploads it straight to your B2 bucket.
-4. Manage synced projects from the same view (download, delete) — both go through the desktop app, since B2 credentials never leave your machine. The account website at **https://kelus-ide.web.app** shows the same list read-only (name, size, date) for browsing from anywhere; its own delete button only removes the listing entry, not the file itself.
+1. Open the **Account** view (the icon above Settings) and sign in: Google, GitHub, or email + password.
+2. Click **Connect GitHub**. Kelus shows a short code and opens github.com/login/device; enter the code and approve.
+3. With a project folder open, click **Sync to GitHub**. The first sync creates a private repo named `<project>-kelus`; later syncs add one commit each.
+4. **Download** restores the latest sync into a new folder on any computer; **Open on GitHub** shows the repo. **Remove from list** only removes the Kelus entry — the repo stays until you delete it on GitHub. The website at **https://kelus-ide.web.app** shows the same list.
+
+What gets synced: everything in the folder except what `.gitignore` excludes, plus these always-excluded paths — `node_modules/`, `.venv/`, `venv/`, `__pycache__/`, build output, `.env` / `.env.*` (but `.env.example` is kept), private keys (`*.pem`, `*.key`, `id_rsa*`), `.npmrc`, `.pypirc`. Files over GitHub's 100 MB limit are skipped and listed after the sync.
 
 Implementation notes:
 
-- The Electron main process talks to Firebase Auth and Firestore over their REST APIs directly (`apps/desktop/electron/account.ts`, `apps/desktop/electron/cloud.ts`), and to Backblaze B2's S3-compatible endpoint with a hand-rolled AWS SigV4 signer (`apps/desktop/electron/b2.ts`, stdlib `node:crypto` only — no AWS SDK dependency). The account website (`public/`) uses the real Firebase Web SDK for Auth/Firestore, loaded from `gstatic.com`.
-- The B2 Application Key and the Firebase refresh token are both stored encrypted with the OS's secure storage (same mechanism as model API keys in Settings); only short-lived tokens are kept in memory.
-- Downloading a synced project extracts the zip with an explicit zip-slip and symlink-entry guard (`extractZipSafely` in `cloud.ts`) rather than trusting a third-party extractor; see [Development rules](docs/architecture.md) for why.
+- Sync never touches your project's own git setup. Each project gets a private git directory in Kelus's app data with the project folder as its work tree (`apps/desktop/electron/syncGit.ts`), so no `.git` folder is created and your own branches, index and commits are untouched. Each sync commits a snapshot on top of whatever is on GitHub, so pushes are always fast-forwards and the latest sync wins (older versions stay in the repo history).
+- GitHub access uses GitHub's device flow with the OAuth app's public client ID (`apps/desktop/electron/githubConfig.ts`, with "Enable Device Flow" ticked on the OAuth app); no client secret ships in the app. The token (`repo` scope, needed to create private repos) is stored encrypted with the OS's secure storage and sent to git as an HTTP header, never written into git config or remote URLs.
+- The Electron main process talks to Firebase Auth and Firestore over their REST APIs directly (`account.ts`, `cloud.ts`). The account website (`public/`) uses the Firebase Web SDK loaded from `gstatic.com`.
 - `firestore.rules` restricts every read and write to the signed-in user's own `users/{uid}` subtree — deployed with `firebase deploy --only firestore:rules`.
 - **One-time setup still required in the Firebase console** for sign-up/sign-in to work (unrelated to storage) — enabling the Email/Password provider has no public API: <https://console.firebase.google.com/project/kelus-ide/authentication> → **Get started**.
 
