@@ -1,9 +1,12 @@
 import argparse
+import json
+import os
 import sys
 from pathlib import Path
 
 from kelus_engine.history import export
 from kelus_engine.provider import configured_provider
+from kelus_engine.team import team_from_json
 from kelus_engine.workflow import run
 
 
@@ -22,7 +25,13 @@ def main() -> None:
         return
     if not args.workspace or not args.task:
         parser.error('--workspace and --task are required')
-    outcome = run(args.task, args.test_command, args.workspace, configured_provider())
+    team_config = os.environ.get('KELUS_TEAM')
+    try:
+        provider = team_from_json(team_config) if team_config else configured_provider()
+    except (ValueError, KeyError) as error:
+        print(json.dumps({'type': 'error', 'message': f'Agent team setup: {error}'}), flush=True)
+        sys.exit(1)
+    outcome = run(args.task, args.test_command, args.workspace, provider)
     if outcome not in ('verified', 'reviewed_without_tests', 'declined'):
         sys.exit(1)
 

@@ -25,13 +25,31 @@
 
   <main id="view-home">
     <section class="hero">
-      <h1>Kelus</h1>
-      <p>An AI-native multi-agent IDE. Specialized agents propose, challenge, and verify
-        changes with executable evidence before anything reaches your project. Create a
-        Kelus account to sync large projects to the cloud from the desktop app.</p>
-      <div class="hero-actions">
-        <a class="button primary" href="#/signup">Create a free account</a>
-        <a class="button" href="#/login">Sign in</a>
+      <div class="hero-copy">
+        <h1>Kelus</h1>
+        <p>An AI-native multi-agent IDE. Specialized agents propose, challenge, and verify
+          changes with executable evidence before anything reaches your project.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#/signup">Create a free account</a>
+          <a class="button" href="#/login">Sign in</a>
+        </div>
+        <div class="install-box">
+          <code>$ npm install &amp;&amp; npm start</code>
+          <button type="button" id="copy-install">Copy</button>
+        </div>
+        <p class="works-with">Works with any OpenAI-compatible API
+          <span class="pill-row">
+            <span class="pill">OpenAI</span><span class="pill">Groq</span><span class="pill">Ollama</span>
+            <span class="pill">OpenRouter</span><span class="pill">LM Studio</span>
+          </span>
+        </p>
+      </div>
+      <div class="terminal-panel" aria-hidden="true">
+        <div class="terminal-head">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="terminal-title">Agent Room</span>
+        </div>
+        <pre class="terminal-body" id="terminal-demo"></pre>
       </div>
     </section>
     <section class="features">
@@ -72,7 +90,7 @@
 
   <main id="view-dashboard" class="dashboard" hidden>
     <div class="dash-header">
-      <div><h1>Your Kelus Cloud</h1><p>Projects synced from the Kelus desktop app.</p></div>
+      <div><h1>Your Kelus Cloud</h1><p>Projects synced from the Kelus desktop app. Files live in your own Backblaze B2 bucket — download and delete from the desktop app.</p></div>
     </div>
     <div class="profile-card">
       <div><div class="name" id="profile-name"></div><div class="email" id="profile-email"></div></div>

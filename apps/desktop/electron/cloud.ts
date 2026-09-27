@@ -8,6 +8,8 @@ import { pipeline } from 'node:stream/promises';
 import { dialog } from 'electron';
 import { firebaseConfig } from './firebaseConfig';
 import { idToken } from './account';
+import { b2Credentials } from './settings';
+import * as b2 from './b2';
 
 export type CloudProject = { id: string; name: string; sizeBytes: number; updatedAt: string; storagePath: string };
 export type SyncProgress = { phase: 'zipping' | 'uploading' | 'writing-record' | 'done'; percent?: number };
@@ -18,7 +20,12 @@ export type SyncProgress = { phase: 'zipping' | 'uploading' | 'writing-record' |
 const EXCLUDED_DIRS = new Set(['node_modules', '.git', 'dist', 'dist-electron', 'dist-ui', '__pycache__', '.venv', 'venv', '.DS_Store']);
 
 function firestoreBase(): string { return `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`; }
-function storageBase(): string { return `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o`; }
+
+async function requireB2(): Promise<NonNullable<Awaited<ReturnType<typeof b2Credentials>>>> {
+  const creds = await b2Credentials();
+  if (!creds) throw new Error('Set up Backblaze B2 in Settings → Cloud storage before syncing.');
+  return creds;
+}
 
 export function projectIdFor(root: string): string {
   return createHash('sha1').update(root).digest('hex').slice(0, 20);
@@ -53,21 +60,10 @@ async function zipWorkspace(root: string, onProgress: (percent: number) => void)
   return { path: zipPath, bytes: stats.size };
 }
 
-async function uploadZip(zipPath: string, uid: string, id: string, token: string): Promise<void> {
+async function uploadZip(zipPath: string, uid: string, id: string): Promise<void> {
   const data = await fs.readFile(zipPath);
-  const objectName = encodeURIComponent(`users/${uid}/projects/${id}.zip`);
-  const response = await fetch(`${storageBase()}?uploadType=media&name=${objectName}`, {
-    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/zip' }, body: data
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(readableStorageError(response.status, text));
-  }
-}
-function readableStorageError(status: number, body: string): string {
-  if (status === 404) return 'Cloud Storage is not set up for this Firebase project yet. Open the Firebase console, go to Storage, and click "Get started" once, then try again.';
-  if (status === 403) return 'Not authorized to upload to cloud storage. Sign in again.';
-  return `Cloud upload failed (${status}): ${body.slice(0, 200)}`;
+  const creds = await requireB2();
+  await b2.putObject(creds, `users/${uid}/projects/${id}.zip`, data);
 }
 
 function toFirestoreFields(project: Omit<CloudProject, 'id'>): Record<string, unknown> {
@@ -99,7 +95,7 @@ export async function syncProject(root: string, send: (progress: SyncProgress) =
   const { path: zipPath, bytes } = await zipWorkspace(root, percent => send({ phase: 'zipping', percent }));
   try {
     send({ phase: 'uploading', percent: 0 });
-    await uploadZip(zipPath, uid, id, token);
+    await uploadZip(zipPath, uid, id);
     send({ phase: 'writing-record' });
     const storagePath = `users/${uid}/projects/${id}.zip`;
     const project: CloudProject = { id, name, sizeBytes: bytes, updatedAt: new Date().toISOString(), storagePath };
@@ -125,19 +121,16 @@ export async function listProjects(): Promise<CloudProject[]> {
 
 export async function deleteProject(id: string): Promise<void> {
   const { token, uid } = await idToken();
-  const objectName = encodeURIComponent(`users/${uid}/projects/${id}.zip`);
-  const storageResponse = await fetch(`${storageBase()}/${objectName}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-  if (!storageResponse.ok && storageResponse.status !== 404) throw new Error(`Could not delete cloud file (${storageResponse.status})`);
+  const creds = await requireB2();
+  await b2.deleteObject(creds, `users/${uid}/projects/${id}.zip`);
   await firestoreFetch(`${firestoreBase()}/users/${uid}/projects/${id}`, token, { method: 'DELETE' });
 }
 
 /** Downloads and extracts a synced project. Returns the chosen destination folder, or null if canceled. */
 export async function downloadProject(id: string): Promise<string | null> {
-  const { token, uid } = await idToken();
-  const objectName = encodeURIComponent(`users/${uid}/projects/${id}.zip`);
-  const response = await fetch(`${storageBase()}/${objectName}?alt=media`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!response.ok) throw new Error(readableStorageError(response.status, await response.text()));
-  const buffer = Buffer.from(await response.arrayBuffer());
+  const { uid } = await idToken();
+  const creds = await requireB2();
+  const buffer = await b2.getObject(creds, `users/${uid}/projects/${id}.zip`);
 
   const result = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'], title: 'Choose a folder to download into' });
   if (result.canceled || !result.filePaths[0]) return null;

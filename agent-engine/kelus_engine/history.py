@@ -31,6 +31,9 @@ def connect() -> sqlite3.Connection:
     if 'hidden_test_results' not in columns:
         db.execute('ALTER TABLE runs ADD COLUMN hidden_test_results TEXT')
         db.commit()
+    if 'rag_sources' not in columns:
+        db.execute('ALTER TABLE runs ADD COLUMN rag_sources TEXT')
+        db.commit()
     return db
 
 
@@ -47,7 +50,7 @@ def export(format: str, destination: Path) -> None:
         rows = [dict(row) for row in db.execute('SELECT * FROM runs ORDER BY started_at')]
     if format == 'json':
         for row in rows:
-            for key in ('agents_used', 'models', 'files_changed'):
+            for key in ('agents_used', 'models', 'files_changed', 'rag_sources'):
                 row[key] = json.loads(row[key]) if row[key] else None
         destination.write_text(json.dumps(rows, indent=2), encoding='utf-8')
     elif format == 'csv':

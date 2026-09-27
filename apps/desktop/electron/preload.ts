@@ -42,6 +42,29 @@ contextBridge.exposeInMainWorld('kelus', {
   cloudSync: () => ipcRenderer.invoke('cloud:sync'),
   cloudDownload: (projectId: string) => ipcRenderer.invoke('cloud:download', projectId),
   cloudDelete: (projectId: string) => ipcRenderer.invoke('cloud:delete', projectId),
+  agentConfig: () => ipcRenderer.invoke('agent:config'),
+  updateAgentConfig: (value: unknown) => ipcRenderer.invoke('agent:config:update', value),
+  computerPermissions: () => ipcRenderer.invoke('computer:permissions'),
+  computerOpenPermission: (kind: 'screen' | 'accessibility') => ipcRenderer.invoke('computer:openPermission', kind),
+  computerStart: (task: string) => ipcRenderer.invoke('computer:start', task),
+  computerDecide: (approved: boolean) => ipcRenderer.invoke('computer:decide', approved),
+  computerStop: () => ipcRenderer.invoke('computer:stop'),
+  onComputerEvent: (callback: (event: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: unknown) => callback(event);
+    ipcRenderer.on('computer:event', listener);
+    return () => ipcRenderer.removeListener('computer:event', listener);
+  },
+  kernelInterpreters: (notebook: string) => ipcRenderer.invoke('kernel:interpreters', notebook),
+  kernelStart: (notebook: string, python?: string) => ipcRenderer.invoke('kernel:start', notebook, python),
+  kernelExecute: (notebook: string, cell: string, code: string) => ipcRenderer.invoke('kernel:execute', notebook, cell, code),
+  kernelInterrupt: (notebook: string) => ipcRenderer.invoke('kernel:interrupt', notebook),
+  kernelRestart: (notebook: string) => ipcRenderer.invoke('kernel:restart', notebook),
+  kernelShutdown: (notebook: string) => ipcRenderer.invoke('kernel:shutdown', notebook),
+  onKernelEvent: (callback: (event: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: unknown) => callback(event);
+    ipcRenderer.on('kernel:event', listener);
+    return () => ipcRenderer.removeListener('kernel:event', listener);
+  },
   onSyncProgress: (callback: (progress: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: unknown) => callback(progress);
     ipcRenderer.on('sync:progress', listener);

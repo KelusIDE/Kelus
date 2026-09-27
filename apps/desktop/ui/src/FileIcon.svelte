@@ -5,7 +5,7 @@
   const byExtension: Record<string, string> = {
     ts: 'typescript', tsx: 'reactts', mts: 'typescript', cts: 'typescript',
     js: 'js', jsx: 'reactjs', mjs: 'js', cjs: 'js',
-    py: 'python', pyw: 'python', json: 'json', jsonc: 'json',
+    py: 'python', pyw: 'python', json: 'json', jsonc: 'json', ipynb: 'jupyter',
     css: 'css', scss: 'scss', sass: 'sass', less: 'less',
     html: 'html', htm: 'html', svelte: 'svelte', vue: 'vue',
     xml: 'xml', svg: 'svg', md: 'markdown', markdown: 'markdown',

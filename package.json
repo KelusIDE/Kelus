@@ -1,35 +1,86 @@
 {
   "name": "kelus",
+  "productName": "Kelus",
   "private": true,
   "version": "0.1.0",
   "description": "AI-native desktop IDE",
+  "author": "Neuronest",
   "main": "dist-electron/main.js",
   "scripts": {
-    "postinstall": "node scripts/prepare-pty.mjs",
+    "postinstall": "node scripts/prepare-pty.mjs && node scripts/brand-electron.mjs",
     "dev": "npm start",
     "start": "npm run build && electron .",
     "build": "tsc -p apps/desktop/electron/tsconfig.json && vite build --config apps/desktop/ui/vite.config.ts && svelte-check --tsconfig apps/desktop/ui/tsconfig.json",
-    "test": "python3 -m unittest discover -s tests -v && node tests/terminal.mjs",
-    "check": "npm run build && npm test"
+    "test": "python3 -m unittest discover -s tests -v && node tests/terminal.mjs && node tests/computer.mjs",
+    "check": "npm run build && npm test",
+    "dist": "npm run build && electron-builder --mac dmg"
   },
   "dependencies": {
-    "@types/yauzl": "^3.4.0",
-    "@xterm/addon-fit": "^0.11.0",
-    "@xterm/xterm": "^5.5.0",
     "archiver": "^7.0.1",
-    "firebase": "^12.19.0",
-    "monaco-editor": "^0.57.0",
     "node-pty": "^1.1.0",
-    "svelte": "^5.57.1",
     "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/archiver": "^7.0.0",
     "@types/node": "^24.13.6",
+    "@types/yauzl": "^3.4.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^5.5.0",
+    "dompurify": "^3.4.16",
     "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "firebase": "^12.19.0",
+    "marked": "^18.0.14",
+    "monaco-editor": "^0.57.0",
+    "svelte": "^5.57.1",
     "svelte-check": "^4.7.6",
     "typescript": "^5.9.3",
     "vite": "^7.3.6"
+  },
+  "build": {
+    "appId": "com.neuronest.kelus",
+    "productName": "Kelus",
+    "copyright": "Copyright © 2026 Neuronest",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets/icons"
+    },
+    "files": [
+      "dist-electron/**",
+      "dist-ui/**",
+      "agent-engine/**",
+      "assets/icons/kelus.png",
+      "assets/icons/kelus.icns",
+      "package.json",
+      "!**/__pycache__/**",
+      "!**/*.pyc"
+    ],
+    "asarUnpack": [
+      "agent-engine/**",
+      "node_modules/node-pty/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icons/kelus.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": "-",
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Kelus Agent uses automation to control apps when you allow computer control.",
+        "NSScreenCaptureUsageDescription": "Kelus Agent looks at your screen when you allow computer control."
+      }
+    },
+    "dmg": {
+      "title": "Kelus ${version}",
+      "artifactName": "Kelus-${version}-${arch}.dmg"
+    }
   }
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Locale, Provider, ProviderProfile, ProviderProfileInput, Settings, SettingsUpdate, Theme } from './types';
+  import type { B2Input, Locale, Provider, ProviderProfile, ProviderProfileInput, Settings, SettingsUpdate, Theme } from './types';
   import { t, locales } from './i18n.svelte';
   let { settings, onSaved, onClose, onPreview, onPreviewLocale }: {
     settings: Settings; onSaved: (value: Settings) => void; onClose: () => void;
@@ -12,11 +12,20 @@
   let activeProfileId = $state('mock');
   let profiles: Draft[] = $state([]);
   let editingId: string | null = $state(null);
+  let b2Bucket = $state('');
+  let b2Endpoint = $state('');
+  let b2KeyId = $state('');
+  let b2ApplicationKey = $state('');
+  let b2ClearApplicationKey = $state(false);
   $effect(() => {
     theme = settings.theme;
     locale = settings.locale;
     activeProfileId = settings.activeProfileId;
     profiles = settings.profiles.map(p => ({ ...p, apiKey: '', clearApiKey: false }));
+    b2Bucket = settings.b2.bucket;
+    b2Endpoint = settings.b2.endpoint;
+    b2KeyId = settings.b2.keyId;
+    b2ApplicationKey = ''; b2ClearApplicationKey = false;
   });
   let saving = $state(false);
   let message = $state('');
@@ -46,12 +55,17 @@
   async function save() {
     saving = true; message = '';
     try {
+      const b2: B2Input = {
+        bucket: b2Bucket, endpoint: b2Endpoint, keyId: b2KeyId,
+        applicationKey: b2ApplicationKey.trim() || undefined, clearApplicationKey: b2ClearApplicationKey
+      };
       const input: SettingsUpdate = {
         theme, locale, activeProfileId,
         profiles: profiles.map((p): ProviderProfileInput => ({
           id: p.id, name: p.name, provider: p.provider, modelUrl: p.modelUrl, modelName: p.modelName,
           apiKey: p.apiKey.trim() || undefined, clearApiKey: p.clearApiKey
-        }))
+        })),
+        b2
       };
       const updated = await window.kelus.updateSettings(input);
       onSaved(updated); message = t('settings.saved');
@@ -110,6 +124,19 @@
       </div>
       <div class="profile-add"><button type="button" onclick={addProfile}>{t('settings.addProfile')}</button></div>
       <p class="settings-hint">{settings.keyStorage === 'encrypted' ? t('settings.keyStorageEncrypted') : t('settings.keyStorageSession')}</p>
+    </section>
+    <section class="settings-group">
+      <h2>{t('settings.cloudStorage')}</h2>
+      <p class="settings-hint">{t('settings.cloudStorageHint')}</p>
+      <label for="b2-bucket">{t('settings.b2Bucket')}</label>
+      <input id="b2-bucket" bind:value={b2Bucket} placeholder="KelusIDE" spellcheck="false"/>
+      <label for="b2-endpoint">{t('settings.b2Endpoint')}</label>
+      <input id="b2-endpoint" bind:value={b2Endpoint} placeholder="s3.us-east-005.backblazeb2.com" spellcheck="false"/>
+      <label for="b2-keyid">{t('settings.b2KeyId')}</label>
+      <input id="b2-keyid" bind:value={b2KeyId} spellcheck="false"/>
+      <label for="b2-appkey">{t('settings.b2ApplicationKey')}</label>
+      <input id="b2-appkey" type="password" bind:value={b2ApplicationKey} placeholder={settings.b2.hasApplicationKey ? t('settings.apiKeySaved') : t('settings.apiKeyEnter')} autocomplete="new-password" spellcheck="false"/>
+      {#if settings.b2.hasApplicationKey}<label class="check-row"><input type="checkbox" bind:checked={b2ClearApplicationKey}/> {t('settings.removeApiKey')}</label>{/if}
     </section>
     <div class="settings-actions"><button class="primary" onclick={save} disabled={saving}>{saving ? t('settings.saving') : t('settings.save')}</button><span role="status">{message}</span></div>
   </div>

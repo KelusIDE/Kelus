@@ -20,7 +20,7 @@
   async function init() { busy = true; try { status = await window.kelus.gitInit(); notice = t('sourceControl.noticeInit'); onChanged(); } catch (error) { onError(error); } finally { busy = false; } }
   async function commit() {
     busy = true; notice = '';
-    try { status = await window.kelus.gitCommit(message, selected); message = ''; selected = status.changes.map(change => change.path); notice = t('sourceControl.noticeCommit'); onChanged(); }
+    try { status = await window.kelus.gitCommit(message, $state.snapshot(selected)); message = ''; selected = status.changes.map(change => change.path); notice = t('sourceControl.noticeCommit'); onChanged(); }
     catch (error) { onError(error); } finally { busy = false; }
   }
   async function saveOrigin() {

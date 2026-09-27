@@ -6,23 +6,18 @@ import {
 import {
   getFirestore, collection, getDocs, doc, deleteDoc, setDoc
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import {
-  getStorage, ref, getDownloadURL, deleteObject
-} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js';
 
 // Same project as apps/desktop/electron/firebaseConfig.ts — this API key is a public
 // client identifier (https://firebase.google.com/docs/projects/api-keys), not a secret.
 const firebaseConfig = {
   apiKey: 'AIzaSyBakQH8Zk7_Wkh-r7fqEW6FEjqLb-hQfdI',
   authDomain: 'kelus-ide.firebaseapp.com',
-  projectId: 'kelus-ide',
-  storageBucket: 'kelus-ide.firebasestorage.app'
+  projectId: 'kelus-ide'
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 const views = {
   home: document.getElementById('view-home'),
@@ -120,12 +115,11 @@ async function loadDashboard() {
       row.className = 'project-row';
       row.innerHTML = `
         <div><div class="name"></div><div class="meta"></div></div>
-        <div class="actions"><button data-action="download">Download</button><button data-action="delete" class="danger">Delete</button></div>`;
+        <div class="actions"><button data-action="delete" class="danger">Remove from list</button></div>`;
       row.querySelector('.name').textContent = data.name || docSnapshot.id;
       row.querySelector('.meta').textContent =
         `${formatSize(data.sizeBytes)} · updated ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown'}`;
-      row.querySelector('[data-action="download"]').addEventListener('click', () => downloadProject(data.storagePath));
-      row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteProject(docSnapshot.id, data.storagePath, data.name || docSnapshot.id));
+      row.querySelector('[data-action="delete"]').addEventListener('click', () => removeFromList(docSnapshot.id, data.name || docSnapshot.id));
       list.appendChild(row);
     });
   } catch (cause) {
@@ -133,21 +127,73 @@ async function loadDashboard() {
     empty.textContent = `Could not load projects: ${cause.message || cause}`;
   }
 }
-async function downloadProject(storagePath) {
-  if (!storagePath) return;
+// Project files live in your own Backblaze B2 bucket (see the desktop app's Settings),
+// not in anything this website has credentials for — download and actual deletion of the
+// file happen from the desktop app. This only removes the listing entry.
+async function removeFromList(id, name) {
+  if (!confirm(`Remove ${name} from this list? The file itself stays in your B2 bucket; delete it from the desktop app or your B2 console.`)) return;
   try {
-    const url = await getDownloadURL(ref(storage, storagePath));
-    window.open(url, '_blank');
-  } catch (cause) { alert(`Could not get a download link: ${cause.message || cause}`); }
-}
-async function deleteProject(id, storagePath, name) {
-  if (!confirm(`Delete the cloud copy of ${name}? This cannot be undone.`)) return;
-  try {
-    if (storagePath) await deleteObject(ref(storage, storagePath)).catch(() => {});
     await deleteDoc(doc(db, 'users', currentUser.uid, 'projects', id));
     await setDoc(doc(db, 'users', currentUser.uid), { lastProjectDeletedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
     loadDashboard();
-  } catch (cause) { alert(`Could not delete: ${cause.message || cause}`); }
+  } catch (cause) { alert(`Could not remove: ${cause.message || cause}`); }
 }
+
+// --- Home hero: copy-to-clipboard install command ---
+const copyInstall = document.getElementById('copy-install');
+copyInstall?.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText('npm install && npm start');
+    copyInstall.textContent = 'Copied!';
+    setTimeout(() => { copyInstall.textContent = 'Copy'; }, 1600);
+  } catch { /* Clipboard API unavailable; the command is still visible to copy by hand. */ }
+});
+
+// --- Home hero: animated Agent Room demo ---
+const demoScript = [
+  { kind: 't-task', prefix: '$ ', text: 'Fix the null pointer bug in auth.py' },
+  { kind: 't-claim', prefix: 'Coder      claim       ', text: 'Proposing a patch to auth.py' },
+  { kind: 't-evidence', prefix: 'Tester     evidence    ', text: 'pytest -q  →  12 passed' },
+  { kind: 't-evidence', prefix: 'Reviewer   evidence    ', text: 'Change matches requirements' },
+  { kind: 't-decision', prefix: 'Judge      decision    ', text: '✓ Verified — merged' }
+];
+function runTerminalDemo() {
+  const el = document.getElementById('terminal-demo');
+  if (!el) return;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) {
+    el.textContent = demoScript.map(step => step.prefix + step.text).join('\n');
+    return;
+  }
+  let stepIndex = 0;
+  function typeStep() {
+    const step = demoScript[stepIndex];
+    const line = document.createElement('div');
+    const prefixSpan = document.createElement('span');
+    prefixSpan.className = step.kind === 't-task' ? 't-task' : 't-agent';
+    prefixSpan.textContent = step.prefix;
+    const textSpan = document.createElement('span');
+    textSpan.className = step.kind;
+    const cursor = document.createElement('span');
+    cursor.className = 't-cursor';
+    line.append(prefixSpan, textSpan, cursor);
+    el.appendChild(line);
+    let charIndex = 0;
+    (function typeChar() {
+      if (charIndex <= step.text.length) {
+        textSpan.textContent = step.text.slice(0, charIndex);
+        charIndex++;
+        setTimeout(typeChar, 18);
+      } else {
+        cursor.remove();
+        stepIndex++;
+        if (stepIndex < demoScript.length) setTimeout(typeStep, 280);
+        else setTimeout(() => { el.textContent = ''; stepIndex = 0; setTimeout(typeStep, 500); }, 2600);
+      }
+    })();
+  }
+  typeStep();
+}
+runTerminalDemo();
 
 route();

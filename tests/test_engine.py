@@ -99,5 +99,46 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual((self.root / 'hello.py').read_text(), 'original\n')
 
 
+class RetrievalTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name) / 'project'
+        self.root.mkdir()
+        self.data = Path(self.temporary.name) / 'data'
+        self.env = patch.dict(os.environ, {'KELUS_DATA_DIR': str(self.data)})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+
+    def test_finds_and_surfaces_a_relevant_existing_file(self):
+        (self.root / 'auth.py').write_text('# authentication helpers\ndef check():\n    return True\n')
+        task = 'Create file hello.py with\n```python\nprint("about authentication flow")\n```'
+        events = []
+        outcome = run(task, '', self.root, MockProvider(), events.append, lambda: True)
+        self.assertEqual(outcome, 'reviewed_without_tests')
+        retriever_events = [event for event in events if event.get('agent') == 'Retriever']
+        self.assertEqual(len(retriever_events), 1)
+        self.assertEqual(retriever_events[0]['evidence']['files'], ['auth.py'])
+        self.assertLess(events.index(retriever_events[0]),
+                         events.index(next(event for event in events if event.get('agent') == 'Coder')))
+        summary = events[-1]['record']
+        self.assertIn('Retriever', summary['agents_used'])
+        self.assertEqual(summary['rag_sources'], ['auth.py'])
+        with connect() as db:
+            self.assertEqual(db.execute('SELECT rag_sources FROM runs').fetchone()[0], '["auth.py"]')
+        destination = self.data / 'runs.json'
+        export('json', destination)
+        self.assertIn('"auth.py"', destination.read_text())
+
+    def test_empty_project_completes_without_matches(self):
+        task = 'Create file hello.py with\n```python\nprint("hello")\n```'
+        events = []
+        outcome = run(task, '', self.root, MockProvider(), events.append, lambda: True)
+        self.assertEqual(outcome, 'reviewed_without_tests')
+        retriever_events = [event for event in events if event.get('agent') == 'Retriever']
+        self.assertEqual(retriever_events[0]['status'], 'empty')
+        self.assertEqual(events[-1]['record']['rag_sources'], [])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -14,6 +14,10 @@
   --accent-contrast: #241c13;
   --status-good: #b0c495;
   --status-bad: #e5a196;
+  --kind-claim: #8fb7d8;
+  --kind-evidence: #a3c98a;
+  --kind-counter: #d99a6c;
+  --kind-decision: #c79fe0;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -32,12 +36,36 @@ a { color: var(--accent); }
 .nav button, .nav a.button { padding: 7px 14px; border-radius: 5px; border: 1px solid var(--border-strong); font-size: 12px; color: var(--text); text-decoration: none; background: transparent; }
 .nav button.primary, .nav a.button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
 
-.hero { max-width: 720px; margin: 64px auto 32px; padding: 0 24px; text-align: center; }
-.hero h1 { font-size: 34px; margin: 0 0 12px; color: var(--text-heading); }
-.hero p { font-size: 15px; color: var(--text-muted); line-height: 1.6; }
-.hero-actions { display: flex; justify-content: center; gap: 12px; margin-top: 24px; }
+.hero { max-width: 1080px; margin: 56px auto 32px; padding: 0 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 48px; align-items: center; }
+.hero-copy h1 { font-size: 40px; margin: 0 0 14px; color: var(--text-heading); }
+.hero-copy p { font-size: 15px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+.hero-actions { display: flex; gap: 12px; margin-top: 24px; }
 .hero-actions button, .hero-actions a.button { padding: 10px 20px; border-radius: 6px; border: 1px solid var(--border-strong); font-size: 13px; color: var(--text); text-decoration: none; }
 .hero-actions .primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+.install-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; background: var(--bg-panel); border: 1px solid var(--border-strong); border-radius: 7px; padding: 10px 8px 10px 14px; }
+.install-box code { font-family: SFMono-Regular, Consolas, monospace; font-size: 13px; color: var(--text); }
+.install-box button { padding: 6px 12px; border-radius: 5px; border: 1px solid var(--border-strong); background: var(--bg-card); color: var(--text-muted); font-size: 11px; }
+.install-box button:hover { color: var(--text-heading); border-color: var(--accent); }
+.works-with { font-size: 12px; color: var(--text-faint); margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { border: 1px solid var(--border-strong); border-radius: 20px; padding: 3px 11px; font-size: 11px; color: var(--text-muted); }
+.terminal-panel { background: #17120c; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; box-shadow: 0 24px 60px -20px #000a; }
+.terminal-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+.terminal-head .dot { width: 9px; height: 9px; border-radius: 50%; }
+.terminal-head .dot.red { background: #e5a196; }
+.terminal-head .dot.yellow { background: #d9b685; }
+.terminal-head .dot.green { background: #b0c495; }
+.terminal-head .terminal-title { margin-left: 6px; font-size: 11px; color: var(--text-faint); }
+.terminal-body { margin: 0; padding: 16px 14px; min-height: 260px; font-family: SFMono-Regular, Consolas, monospace; font-size: 12px; line-height: 1.9; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.terminal-body .t-task { color: var(--text-faint); }
+.terminal-body .t-agent { color: var(--text-heading); font-weight: 600; }
+.terminal-body .t-claim { color: var(--kind-claim); }
+.terminal-body .t-evidence { color: var(--kind-evidence); }
+.terminal-body .t-counter { color: var(--kind-counter); }
+.terminal-body .t-decision { color: var(--kind-decision); }
+.terminal-body .t-cursor { display: inline-block; width: 6px; height: 13px; background: var(--accent); margin-left: 2px; vertical-align: -2px; animation: t-blink 1s step-end infinite; }
+@keyframes t-blink { 50% { opacity: 0; } }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .terminal-panel { order: -1; } }
 .features { max-width: 900px; margin: 40px auto; padding: 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .feature { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
 .feature h3 { margin: 0 0 8px; font-size: 14px; color: var(--text-heading); }

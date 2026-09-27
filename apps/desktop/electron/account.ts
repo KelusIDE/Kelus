@@ -107,9 +107,12 @@ export async function idToken(): Promise<{ token: string; uid: string }> {
   const account = await loadStored();
   if (!account) throw new Error('Sign in to Kelus to use cloud sync');
   if (session && session.expiresAt > Date.now()) return { token: session.idToken, uid: account.uid };
-  const refreshToken = secureStorageAvailable() && account.encryptedRefreshToken
-    ? safeStorage.decryptString(Buffer.from(account.encryptedRefreshToken, 'base64'))
-    : account.encryptedRefreshToken;
+  let refreshToken: string;
+  try {
+    refreshToken = secureStorageAvailable() && account.encryptedRefreshToken
+      ? safeStorage.decryptString(Buffer.from(account.encryptedRefreshToken, 'base64'))
+      : account.encryptedRefreshToken;
+  } catch { throw new Error('Your saved Kelus sign-in could not be read by this build. Sign out and sign in again.'); }
   const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${firebaseConfig.apiKey}`, {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })

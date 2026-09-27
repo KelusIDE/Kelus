@@ -1,16 +1,27 @@
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { readGitStatus } from './execution';
 let root: string | null = null;
 export type Entry = { name: string; path: string; directory: boolean; git?: string };
 
+const lastWorkspaceFile = () => path.join(app.getPath('userData'), 'last-workspace.json');
+
 export function workspaceRoot(): string | null { return root; }
 export async function openWorkspace(): Promise<string | null> {
   const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
   if (result.canceled || !result.filePaths[0]) return null;
   root = await fs.realpath(result.filePaths[0]);
+  await fs.writeFile(lastWorkspaceFile(), JSON.stringify({ root }), 'utf8').catch(() => undefined);
   return root;
+}
+export async function restoreWorkspace(): Promise<void> {
+  try {
+    const saved = JSON.parse(await fs.readFile(lastWorkspaceFile(), 'utf8')).root;
+    if (typeof saved !== 'string') return;
+    const resolved = await fs.realpath(saved);
+    if ((await fs.stat(resolved)).isDirectory()) root = resolved;
+  } catch { /* No saved workspace, or the folder was moved/deleted. */ }
 }
 
 async function guarded(relative: string, existing: boolean): Promise<string> {
@@ -30,6 +41,8 @@ async function guarded(relative: string, existing: boolean): Promise<string> {
   }
   return target;
 }
+
+export function resolveInside(relative: string): Promise<string> { return guarded(relative, true); }
 
 export async function listFiles(relative = ''): Promise<Entry[]> {
   if (!root) return [];

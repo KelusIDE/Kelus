@@ -1,5 +1,7 @@
-import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } from 'electron';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import * as workspace from './workspace';
 import * as execution from './execution';
 import * as agent from './agent';
@@ -7,11 +9,23 @@ import * as settings from './settings';
 import * as git from './git';
 import * as account from './account';
 import * as cloud from './cloud';
+import * as kernel from './kernel';
+import * as computer from './computer';
 
 function requireRoot(): string {
   const root = workspace.workspaceRoot();
   if (!root) throw new Error('Open a project folder first');
   return root;
+}
+
+// Apps opened from Finder get launchd's minimal PATH; borrow the login shell's so python3, git and gh resolve like in Terminal.
+async function loadShellPath(): Promise<void> {
+  if (!app.isPackaged || process.platform === 'win32') return;
+  try {
+    const { stdout } = await promisify(execFile)(process.env.SHELL || '/bin/zsh', ['-ilc', 'printf "__KELUS_PATH__%s" "$PATH"'], { timeout: 8000 });
+    const value = stdout.split('__KELUS_PATH__').at(-1)?.trim();
+    if (value) process.env.PATH = value;
+  } catch { /* keep the default PATH */ }
 }
 
 function createWindow(): void {
@@ -23,13 +37,45 @@ function createWindow(): void {
     icon: iconPath,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault();
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+  });
   win.loadFile(path.join(app.getAppPath(), 'dist-ui', 'index.html'));
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Renamed here, not before ready: the Keychain entry that encrypts saved API keys is named after the startup name.
   app.setName('Kelus');
+  if (process.platform === 'darwin') Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'fileMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' }]));
+  app.setAboutPanelOptions({
+    applicationName: 'Kelus', applicationVersion: app.getVersion(), version: '',
+    iconPath: path.join(app.getAppPath(), 'assets', 'icons', 'kelus.png')
+  });
+  await Promise.all([workspace.restoreWorkspace(), loadShellPath()]);
   if (process.platform === 'darwin') app.dock?.setIcon(nativeImage.createFromPath(path.join(app.getAppPath(), 'assets', 'icons', 'kelus.png')));
-  ipcMain.handle('workspace:open', () => workspace.openWorkspace());
+  ipcMain.handle('workspace:open', async () => {
+    const opened = await workspace.openWorkspace();
+    if (opened) kernel.stopAll();
+    return opened;
+  });
+  ipcMain.handle('agent:config', () => settings.agentConfig());
+  ipcMain.handle('agent:config:update', (_e, value: unknown) => settings.updateAgentConfig(value));
+  ipcMain.handle('computer:permissions', () => computer.computerPermissions());
+  ipcMain.handle('computer:openPermission', (_e, kind: 'screen' | 'accessibility') => computer.openPermissionSettings(kind === 'screen' ? 'screen' : 'accessibility'));
+  ipcMain.handle('computer:start', (event, task: string) => computer.startComputer(event.sender, task));
+  ipcMain.handle('computer:decide', (_e, approved: boolean) => computer.decideComputer(approved === true));
+  ipcMain.handle('computer:stop', () => computer.stopComputer());
+  ipcMain.handle('kernel:interpreters', (_e, notebook: string) => kernel.listInterpreters(notebook));
+  ipcMain.handle('kernel:start', (event, notebook: string, python?: string) => kernel.startKernel(event.sender, notebook, python));
+  ipcMain.handle('kernel:execute', (_e, notebook: string, cell: string, code: string) => kernel.execute(notebook, cell, code));
+  ipcMain.handle('kernel:interrupt', (_e, notebook: string) => kernel.interrupt(notebook));
+  ipcMain.handle('kernel:restart', (_e, notebook: string) => kernel.restart(notebook));
+  ipcMain.handle('kernel:shutdown', (_e, notebook: string) => kernel.shutdownKernel(notebook));
   ipcMain.handle('workspace:root', () => workspace.workspaceRoot());
   ipcMain.handle('workspace:list', (_e, relative: string) => workspace.listFiles(relative));
   ipcMain.handle('workspace:read', (_e, relative: string) => workspace.readFile(relative));
@@ -63,4 +109,4 @@ app.whenReady().then(() => {
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => { execution.stopTerminal(); agent.stopAgent(); });
+app.on('before-quit', () => { execution.stopTerminal(); agent.stopAgent(); kernel.stopAll(); computer.stopComputer(); });

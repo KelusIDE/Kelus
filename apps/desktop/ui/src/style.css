@@ -101,9 +101,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .tab-close { padding: 0 10px 0 2px; font-size: 16px; color: var(--text-muted); }
 .tab-placeholder { color: var(--text-faint); font-size: 11px; padding: 10px 15px; }
 .save-button { margin-left: auto; padding: 0 13px; font-size: 11px; color: var(--text-muted); }
-.breadcrumbs { flex: 0 0 23px; padding: 5px 15px; color: var(--text-faint); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.breadcrumbs { flex: 0 0 23px; padding: 5px 15px; color: var(--text-faint); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.nb-toggle { flex: 0 0 auto; color: var(--accent); font-size: 10px; }
+.nb-toggle:hover { text-decoration: underline; }
 .editor-wrap { flex: 1; min-height: 150px; position: relative; background: var(--bg-app); }
 .editor-host { position: absolute; inset: 0; }
+.notebook-scroll { position: absolute; inset: 0; overflow-y: auto; }
 .editor-empty { position: absolute; inset: 0; pointer-events: none; background: var(--bg-app); display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translateY(-4%); }
 .welcome-mark { width: 78px; height: 78px; object-fit: contain; opacity: .34; }
 .editor-empty h2 { color: var(--text-heading); font-size: 18px; font-weight: 500; margin: 14px 0 5px; }
@@ -212,7 +215,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .settings-group { display: flex; flex-direction: column; gap: 7px; padding: 14px 0 20px; border-bottom: 1px solid var(--border); }
 .settings-group h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
 .settings-group label { font-size: 11px; margin-top: 6px; }
-.settings-group input:not([type='checkbox']), .settings-group select { width: 100%; max-width: 520px; height: 30px; padding: 0 8px; color: inherit; background: var(--bg-panel); border: 1px solid var(--border-strong); border-radius: 3px; font-size: 11px; }
+.settings-group input:not([type='checkbox']):not([type='radio']), .settings-group select { width: 100%; max-width: 520px; height: 30px; padding: 0 8px; color: inherit; background: var(--bg-panel); border: 1px solid var(--border-strong); border-radius: 3px; font-size: 11px; }
 .settings-group .check-row { display: flex; align-items: center; gap: 6px; }
 .settings-hint { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
 .settings-actions { display: flex; align-items: center; gap: 15px; padding-top: 18px; font-size: 11px; }
@@ -224,7 +227,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .profile-list { display: flex; flex-direction: column; gap: 7px; max-width: 560px; }
 .profile-row { border: 1px solid var(--border-strong); border-radius: 5px; background: var(--bg-panel); padding: 8px 10px; }
 .profile-row.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.profile-radio { display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; }
+.profile-radio { display: flex; align-items: center; gap: 8px; margin-top: 0; font-size: 11px; cursor: pointer; }
 .profile-radio input { accent-color: var(--accent); }
 .profile-name { font-weight: 600; }
 .profile-kind { color: var(--text-muted); font-size: 10px; margin-left: auto; }
@@ -338,3 +341,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   --debate-text: #c8c8c8;
   --statusbar-bg: #000000; --statusbar-text: #ffffff; --scrollbar-thumb: #ffffff;
 }
+.agent-modes { display: flex; gap: 2px; margin-left: auto; margin-right: 8px; background: var(--bg-app); border-radius: 5px; padding: 2px; }
+.agent-modes button { font-size: 10px !important; color: var(--text-muted); padding: 2px 8px; border-radius: 3px; }
+.agent-modes button.chosen { background: var(--bg-elevated); color: var(--text-heading); }
+.model-tag { font-size: 9px; color: var(--accent); border: 1px solid var(--border-strong); border-radius: 3px; padding: 0 4px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

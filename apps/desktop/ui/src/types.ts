@@ -3,9 +3,17 @@ export type Theme = 'warm' | 'dark' | 'light' | 'midnight' | 'dracula' | 'nord' 
 export type Locale = 'en' | 'ko' | 'fr' | 'es' | 'de' | 'ja' | 'zh';
 export type Provider = 'mock' | 'openai-compatible';
 export type ProviderProfile = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; hasApiKey: boolean };
-export type Settings = { theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfile[]; keyStorage: 'encrypted' | 'session-only' };
+export type B2Settings = { bucket: string; endpoint: string; keyId: string; hasApplicationKey: boolean };
+export type B2Input = { bucket: string; endpoint: string; keyId: string; applicationKey?: string; clearApplicationKey?: boolean };
+export type Settings = {
+  theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfile[];
+  b2: B2Settings; keyStorage: 'encrypted' | 'session-only';
+};
 export type ProviderProfileInput = { id: string; name: string; provider: Provider; modelUrl: string; modelName: string; apiKey?: string; clearApiKey?: boolean };
-export type SettingsUpdate = { theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfileInput[] };
+export type SettingsUpdate = {
+  theme: Theme; locale: Locale; activeProfileId: string; profiles: ProviderProfileInput[];
+  b2: B2Input;
+};
 export type GitSnapshot = { repository: boolean; branch: string; remote: string; changes: { path: string; status: string }[] };
 export type GitHubStatus = { cliAvailable: boolean; connected: boolean; username: string };
 /**
@@ -17,7 +25,7 @@ export type GitHubStatus = { cliAvailable: boolean; connected: boolean; username
 export type AgentEventKind = 'claim' | 'evidence' | 'counterargument' | 'decision';
 export type AgentEvent = {
   type: 'agent' | 'approval' | 'summary' | 'error' | 'log' | 'exit';
-  agent?: string; status?: string; message?: string; evidence?: Record<string, unknown>;
+  agent?: string; model?: string; status?: string; message?: string; evidence?: Record<string, unknown>;
   kind?: AgentEventKind; debate?: boolean;
   path?: string; before?: string | null; after?: string; test_command?: string | null;
   record?: RunRecord; code?: number;
@@ -62,5 +70,53 @@ export type KelusAPI = {
   cloudDownload(projectId: string): Promise<string | null>;
   cloudDelete(projectId: string): Promise<void>;
   onSyncProgress(callback: (progress: SyncProgress) => void): () => void;
+  agentConfig(): Promise<AgentConfig>;
+  updateAgentConfig(value: AgentConfig): Promise<AgentConfig>;
+  computerPermissions(): Promise<ComputerPermissions>;
+  computerOpenPermission(kind: 'screen' | 'accessibility'): Promise<void>;
+  computerStart(task: string): Promise<void>;
+  computerDecide(approved: boolean): Promise<void>;
+  computerStop(): Promise<void>;
+  onComputerEvent(callback: (event: ComputerEvent) => void): () => void;
+  kernelInterpreters(notebook: string): Promise<Interpreter[]>;
+  kernelStart(notebook: string, python?: string): Promise<{ python: string }>;
+  kernelExecute(notebook: string, cell: string, code: string): Promise<void>;
+  kernelInterrupt(notebook: string): Promise<void>;
+  kernelRestart(notebook: string): Promise<void>;
+  kernelShutdown(notebook: string): Promise<void>;
+  onKernelEvent(callback: (event: KernelEvent) => void): () => void;
 };
+export type Interpreter = { path: string; label: string; version: string };
+export type AgentConfig = {
+  debate: boolean; coderId: string; criticIds: string[]; judgeId: string;
+  panel: boolean; panelIds: string[]; panelRounds: number;
+  computer: { enabled: boolean; profileId: string; confirmEachAction: boolean; maxSteps: number };
+};
+export type ComputerPermissions = { supported: boolean; screen: string; accessibility: boolean };
+export type ComputerEvent =
+  | { type: 'status'; running: boolean; model?: string; dryRun?: boolean }
+  | { type: 'screenshot'; step: number; preview: string }
+  | { type: 'step'; step: number; thought: string; description: string; invalid?: boolean }
+  | { type: 'approval'; step: number; description: string; thought: string }
+  | { type: 'done' | 'failed'; summary?: string }
+  | { type: 'stopped'; reason: string }
+  | { type: 'error'; message: string };
+export type NotebookOutput = {
+  output_type: 'stream' | 'display_data' | 'execute_result' | 'error';
+  name?: string; text?: string | string[];
+  data?: Record<string, unknown>; metadata?: Record<string, unknown>; execution_count?: number | null;
+  ename?: string; evalue?: string; traceback?: string[];
+};
+export type KernelState = 'starting' | 'idle' | 'busy' | 'restarting' | 'dead';
+export type KernelEvent = { path: string } & (
+  | { event: 'status'; state: KernelState }
+  | { event: 'ready'; python: string; version: string }
+  | { event: 'missing'; packages: string[]; python: string }
+  | { event: 'error'; message: string }
+  | { event: 'count'; cell: string; count: number }
+  | { event: 'output'; cell: string; output: NotebookOutput; display_id: string | null }
+  | { event: 'update'; display_id: string; output: NotebookOutput }
+  | { event: 'clear'; cell: string; wait: boolean }
+  | { event: 'done'; cell: string; status: 'ok' | 'aborted' }
+);
 declare global { interface Window { kelus: KelusAPI } }
