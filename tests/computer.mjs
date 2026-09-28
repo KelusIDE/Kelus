@@ -42,3 +42,12 @@ const qwen25 = core.parseAction('{"action":"click","coordinate":[640,400]}', sho
 assert.deepEqual([qwen25.x, qwen25.y], [640, 400]);
 assert.match(core.systemPrompt(1280, 800, 'darwin', 'norm1000-yx'), /"point": \[y, x\]/);
 console.log('Vision coordinate formats: OK');
+
+// Field-name variants local models produce.
+assert.deepEqual(core.parseAction('{"action":"key","args":["cmd","space"]}', shot).keys, ['cmd', 'space']);
+assert.deepEqual(core.parseAction('{"action":"key","key":"Command+Space"}', shot).keys, ['cmd', 'space']);
+assert.deepEqual(core.parseAction('{"action":"key","keys":"return"}', shot).keys, ['enter']);
+assert.equal(core.parseAction('{"action":"type","content":"safari"}', shot).text, 'safari');
+assert.equal(core.parseAction('{"action":"scroll","x":1,"y":1,"direction":"up"}', shot).amount, -5);
+assert.match(core.systemPrompt(1280, 800, 'darwin', 'norm1000-yx'), /"keys":\["cmd","space"\]/);
+console.log('Model reply variants: OK');

@@ -3,7 +3,7 @@
     "target": "ES2022", "module": "CommonJS", "moduleResolution": "Node",
     "lib": ["ES2022"], "outDir": "../../../dist-electron", "rootDir": ".",
     "strict": true, "esModuleInterop": true, "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"], "ignoreDeprecations": "6.0"
   },
   "include": ["*.ts"]
 }
